@@ -2,11 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { User, UserType } from './user.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { SignupDto } from './dto/signup.dto';
+
 import { Student } from './student.entity';
 import { Advisor } from './advisor.entity';
-import { SigninDto } from './dto/signin.dto';
+
 import { HttpException, HttpStatus } from '@nestjs/common';
+import { SignupDto } from '../dto/signup.dto';
+import { SigninDto } from '../dto/signin.dto';
 
 @Injectable()
 export class UserRepository {
