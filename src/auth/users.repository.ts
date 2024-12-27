@@ -6,6 +6,7 @@ import { SignupDto } from './dto/signup.dto';
 import { Student } from './student.entity';
 import { Advisor } from './advisor.entity';
 import { SigninDto } from './dto/signin.dto';
+import { HttpException, HttpStatus } from '@nestjs/common';
 
 @Injectable()
 export class UserRepository {
@@ -55,17 +56,24 @@ export class UserRepository {
       console.log(err.message);
     }
   }
-  async validateUser(signinDto: SigninDto): Promise<string> {
+  async validateUser(
+    signinDto: SigninDto,
+  ): Promise<{ success: boolean; message: string }> {
     const { email, password } = signinDto;
 
     try {
       const user = await this.userRepository.findOne({ where: { email } });
       if (user && user.password === password) {
-        return 'Login successful';
+        return { success: true, message: 'Login successful' };
+      } else {
+        throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
       }
-      return 'User name or password is incorrect';
     } catch (err) {
-      console.log(err.message);
+      // For other errors, throw a generic internal server error
+      throw new HttpException(
+        err.message || 'Internal server error',
+        err.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
   async deleteUser(id: string): Promise<void> {
