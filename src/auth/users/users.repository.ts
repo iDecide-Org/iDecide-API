@@ -2,9 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { User, UserType } from './user.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-
 import { Student } from './student.entity';
 import { Advisor } from './advisor.entity';
+import * as bcrypt from 'bcrypt';
 
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { SignupDto } from '../dto/signup.dto';
@@ -23,66 +23,78 @@ export class UserRepository {
     private readonly advisorRepository: Repository<Advisor>,
   ) {}
 
-  async createUser(signupDto: SignupDto): Promise<void> {
+  async createUser(signupDto: SignupDto): Promise<User> {
     const { name, password, email, type } = signupDto;
-
-    // Create a new User instance
+    const hashedPassword = await bcrypt.hash(password, 10);
     const user = this.userRepository.create({
       name,
-      password,
+      password: hashedPassword,
       email,
       type,
     });
 
     try {
-      // Save the User entity first
       const savedUser = await this.userRepository.save(user);
 
-      // If the user type is 'student', create and link the Student entity
       if (type === UserType.STUDENT) {
-        const student = this.studentRepository.create({
-          user: savedUser, // Establish the relationship
-        });
-
-        // Save the Student entity
+        const student = this.studentRepository.create({ user: savedUser });
         await this.studentRepository.save(student);
       } else if (type === UserType.ADVISOR) {
-        const advisor = this.advisorRepository.create({
-          user: savedUser, // Establish the relationship
-        });
-
-        // Save the Advisor entity
+        const advisor = this.advisorRepository.create({ user: savedUser });
         await this.advisorRepository.save(advisor);
-      }
-    } catch (err) {
-      console.log(err.message);
-    }
-  }
-  async validateUser(
-    signinDto: SigninDto,
-  ): Promise<{ success: boolean; message: string }> {
-    const { email, password } = signinDto;
-
-    try {
-      const user = await this.userRepository.findOne({ where: { email } });
-      if (user && user.password === password) {
-        return { success: true, message: 'Login successful' };
       } else {
-        throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
+        throw new HttpException('Invalid user type', HttpStatus.BAD_REQUEST);
       }
+
+      return savedUser;
     } catch (err) {
-      // For other errors, throw a generic internal server error
       throw new HttpException(
         err.message || 'Internal server error',
         err.status || HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
+
+  async validateUser(signinDto: SigninDto): Promise<User> {
+    const { email, password } = signinDto;
+
+    try {
+      const user = await this.userRepository.findOne({ where: { email } });
+      if (!user) {
+        throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
+      }
+
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+
+      if (!isPasswordValid) {
+        throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
+      }
+
+      return user; // Return the user object for further processing
+    } catch (err) {
+      throw new HttpException(
+        err.message || 'Internal server error',
+        err.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   async deleteUser(id: string): Promise<void> {
     try {
       await this.userRepository.delete(id);
     } catch (err) {
       console.log(err.message);
+    }
+  }
+
+  async findById(id: string): Promise<User> {
+    try {
+      return await this.userRepository.findOne({ where: { id } });
+    } catch (err) {
+      throw new HttpException(
+        err.message || 'Internal server error',
+        err.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 }

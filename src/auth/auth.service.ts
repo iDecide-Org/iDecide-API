@@ -1,17 +1,38 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { SignupDto } from './dto/signup.dto';
 
 import { SigninDto } from './dto/signin.dto';
 import { UserRepository } from './users/users.repository';
+import { User } from './users/user.entity';
+import { JwtService } from '@nestjs/jwt';
+import { Response } from 'express';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly userRepository: UserRepository) {}
-  async Signup(signupDto: SignupDto) {
-    return this.userRepository.createUser(signupDto);
+  constructor(
+    private jwtService: JwtService,
+    private readonly userRepository: UserRepository,
+  ) {}
+  async Signup(signupDto: SignupDto): Promise<User | void> {
+    try {
+      await this.userRepository.createUser(signupDto);
+
+      return;
+    } catch (err) {
+      throw new HttpException(err.message, HttpStatus.BAD_REQUEST);
+    }
   }
-  async Signin(signinDto: SigninDto) {
-    return this.userRepository.validateUser(signinDto);
+
+  async Signin(signinDto: SigninDto, response: Response): Promise<any> {
+    try {
+      const user = await this.userRepository.validateUser(signinDto);
+      const jwt = await this.jwtService.signAsync({ id: user.id });
+      response.cookie('jwt', jwt, { httpOnly: true });
+
+      return { message: 'Success' };
+    } catch (err) {
+      throw new HttpException(err.message, HttpStatus.UNAUTHORIZED);
+    }
   }
 
   async deleteUser(id: string) {
