@@ -26,6 +26,30 @@ export class AuthController {
     private readonly userRepository: UserRepository,
   ) {}
 
+  @Post('chatbot-status')
+  @HttpCode(HttpStatus.OK)
+  async updateChatbotStatus(
+    @Body() body: { status: boolean },
+    @Req() request: Request,
+  ) {
+    try {
+      const cookie = request.cookies['jwt'];
+
+      const data = await this.jwtService.verifyAsync(cookie);
+
+      if (!data) {
+        throw new UnauthorizedException('Unauthorized');
+      }
+
+      await this.userRepository.updateChatbotStatus(data['id'], body.status);
+
+      return {
+        message: 'Success',
+      };
+    } catch (e) {
+      throw new UnauthorizedException(e.message);
+    }
+  }
   @Post('signup')
   @HttpCode(HttpStatus.CREATED)
   async Signup(
@@ -59,6 +83,17 @@ export class AuthController {
       }
       // find user logic here
       const user = await this.userRepository.findById(data['id']);
+
+      if (user.type === 'student') {
+        const student = await this.userRepository.findStudentByUserId(
+          data['id'],
+        );
+        const status = student.chatbotCompleted;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { password, id, ...result } = user;
+        //return user and chatbot status and user witout id and password
+        return { ...result, chatbotCompleted: status };
+      }
 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password, id, ...result } = user;

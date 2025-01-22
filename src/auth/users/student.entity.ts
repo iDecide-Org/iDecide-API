@@ -43,6 +43,9 @@ export class Student {
   @Column({ default: false })
   isAlumniCertified: boolean;
 
+  @Column({ default: false })
+  chatbotCompleted: boolean;
+
   @OneToOne(() => User, (user) => user.student, { onDelete: 'CASCADE' })
   @JoinColumn()
   user: User;

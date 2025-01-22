@@ -23,6 +23,40 @@ export class UserRepository {
     private readonly advisorRepository: Repository<Advisor>,
   ) {}
 
+  async updateChatbotStatus(userId: string, status: boolean): Promise<void> {
+    try {
+      const student = await this.studentRepository.findOne({
+        where: { user: { id: userId } },
+      });
+
+      if (!student) {
+        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+      }
+
+      student.chatbotCompleted = status;
+
+      await this.studentRepository.save(student);
+    } catch (err) {
+      throw new HttpException(
+        err.message || 'Internal server error',
+        err.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async findStudentByUserId(userId: string): Promise<Student> {
+    try {
+      return await this.studentRepository.findOne({
+        where: { user: { id: userId } },
+      });
+    } catch (err) {
+      throw new HttpException(
+        err.message || 'Internal server error',
+        err.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   async createUser(signupDto: SignupDto): Promise<User> {
     const { name, password, email, type } = signupDto;
     const hashedPassword = await bcrypt.hash(password, 10);
