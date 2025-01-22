@@ -27,8 +27,13 @@ export class AuthController {
   ) {}
 
   @Post('signup')
-  async Signup(@Body() signupDto: SignupDto) {
-    return this.authService.Signup(signupDto);
+  @HttpCode(HttpStatus.CREATED)
+  async Signup(
+    @Body() signupDto: SignupDto,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const { token } = await this.authService.Signup(signupDto, response);
+    return { massage: 'Success', token };
   }
 
   @Post('signin')

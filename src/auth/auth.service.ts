@@ -3,7 +3,6 @@ import { SignupDto } from './dto/signup.dto';
 
 import { SigninDto } from './dto/signin.dto';
 import { UserRepository } from './users/users.repository';
-import { User } from './users/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import { Response } from 'express';
 
@@ -13,11 +12,20 @@ export class AuthService {
     private jwtService: JwtService,
     private readonly userRepository: UserRepository,
   ) {}
-  async Signup(signupDto: SignupDto): Promise<User | void> {
+  async Signup(
+    signupDto: SignupDto,
+    response: Response,
+  ): Promise<{ token: string }> {
     try {
-      await this.userRepository.createUser(signupDto);
+      // Create the user
+      const user = await this.userRepository.createUser(signupDto);
 
-      return;
+      // Generate a JWT token
+      const token = this.jwtService.sign({ id: user.id, email: user.email });
+      response.cookie('jwt', token, { httpOnly: true });
+
+      // Return the user and token
+      return { token };
     } catch (err) {
       throw new HttpException(err.message, HttpStatus.BAD_REQUEST);
     }
