@@ -73,6 +73,7 @@ export class AuthController {
     return this.authService.deleteUser(id);
   }
   @Get('user')
+  @HttpCode(HttpStatus.OK) //this will return 200 status code if success
   async getUser(@Req() request: Request) {
     try {
       const cookie = request.cookies['jwt'];
