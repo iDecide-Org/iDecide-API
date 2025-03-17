@@ -57,6 +57,19 @@ export class UserRepository {
     }
   }
 
+  async findAdvisorByUserId(userId: string): Promise<Advisor> {
+    try {
+      return await this.advisorRepository.findOne({
+        where: { user: { id: userId } },
+      });
+    } catch (err) {
+      throw new HttpException(
+        err.message || 'Internal server error',
+        err.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   async createUser(signupDto: SignupDto): Promise<User> {
     const { name, password, email, type } = signupDto;
     const hashedPassword = await bcrypt.hash(password, 10);

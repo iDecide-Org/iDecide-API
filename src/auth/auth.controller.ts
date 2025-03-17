@@ -94,6 +94,20 @@ export class AuthController {
         const { password, id, ...result } = user;
         //return user and chatbot status and user witout id and password
         return { ...result, chatbotCompleted: status };
+      } else if (user.type === 'advisor') {
+        const advisor = await this.userRepository.findAdvisorByUserId(
+          data['id'],
+        );
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { password, id, ...result } = user;
+        //return user and advisor specific data without id and password
+        return {
+          ...result,
+          communicationEmail: advisor.communationEmail,
+          communicationNumber: advisor.communicationNumber,
+          identificationPic: advisor.identificationPic,
+          isIdentified: advisor.isIdentified,
+        };
       }
 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
