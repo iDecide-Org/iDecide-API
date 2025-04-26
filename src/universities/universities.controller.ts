@@ -4,7 +4,6 @@ import {
   Body,
   UseInterceptors,
   UploadedFile,
-  UseGuards,
   Req,
   Get,
   Param,
@@ -51,8 +50,14 @@ export class UniversitiesController {
   // Helper to get user from request
   private async getUserFromRequest(request: Request) {
     // Log headers inside the function that checks for the token
-    this.logger.debug('Incoming headers in getUserFromRequest:', request.headers);
-    this.logger.debug('Incoming cookies in getUserFromRequest:', request.cookies);
+    this.logger.debug(
+      'Incoming headers in getUserFromRequest:',
+      request.headers,
+    );
+    this.logger.debug(
+      'Incoming cookies in getUserFromRequest:',
+      request.cookies,
+    );
 
     let token = request.cookies['jwt'];
     if (!token) {
@@ -91,13 +96,17 @@ export class UniversitiesController {
     this.logger.debug('Incoming headers in addUniversity:', request.headers);
     this.logger.debug('Incoming cookies in addUniversity:', request.cookies);
 
-    if (!file) {
-      // Handle case where file is not uploaded, maybe throw BadRequestException
-      throw new Error('University image is required.');
-    }
+    // if (!file) {
+    //   // Handle case where file is not uploaded, maybe throw BadRequestException
+    //   throw new Error('University image is required.');
+    // }
     const user = await this.getUserFromRequest(request);
-    const imagePath = file.path; // Or construct a URL if serving files statically
-    return this.universitiesService.addUniversity(createUniversityDto, imagePath, user);
+    const imagePath = '/'; // Or construct a URL if serving files statically
+    return this.universitiesService.addUniversity(
+      createUniversityDto,
+      imagePath,
+      user,
+    );
   }
 
   @Get('/advisor') // Route specifically for advisors to get their universities
@@ -110,17 +119,18 @@ export class UniversitiesController {
 
     const user = await this.getUserFromRequest(request);
     if (user.type !== 'advisor') {
-      throw new UnauthorizedException('Only advisors can access this resource.');
+      throw new UnauthorizedException(
+        'Only advisors can access this resource.',
+      );
     }
     return this.universitiesService.getUniversitiesByAdvisor(user.id);
   }
 
-   @Get() // General route for everyone (e.g., students)
-   // No AuthGuard needed if public
-   async getAllUniversities() {
-     return this.universitiesService.getAllUniversities();
-   }
-
+  @Get() // General route for everyone (e.g., students)
+  // No AuthGuard needed if public
+  async getAllUniversities() {
+    return this.universitiesService.getAllUniversities();
+  }
 
   @Get(':id')
   // No AuthGuard needed if public

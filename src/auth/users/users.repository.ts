@@ -43,18 +43,24 @@ export class UserRepository {
         where: { user: { id: userId } },
       });
     } catch (err) {
-      throw new InternalServerErrorException('Database error checking for student.');
+      throw new InternalServerErrorException(
+        'Database error checking for student.',
+      );
     }
 
     if (!student) {
-      throw new NotFoundException(`Student associated with user ID ${userId} not found`);
+      throw new NotFoundException(
+        `Student associated with user ID ${userId} not found`,
+      );
     }
 
     try {
       student.chatbotCompleted = status;
       await this.studentRepository.save(student);
     } catch (err) {
-      throw new InternalServerErrorException('Failed to update chatbot status.');
+      throw new InternalServerErrorException(
+        'Failed to update chatbot status.',
+      );
     }
   }
 
@@ -78,7 +84,8 @@ export class UserRepository {
     }
   }
 
-  async findAdminByUserId(userId: string): Promise<Admin | null> { // Add findAdminByUserId
+  async findAdminByUserId(userId: string): Promise<Admin | null> {
+    // Add findAdminByUserId
     try {
       return await this.adminRepository.findOne({
         where: { user: { id: userId } },
@@ -91,12 +98,16 @@ export class UserRepository {
   async createUser(signupDto: SignupDto): Promise<User> {
     const { name, password, email, type } = signupDto;
 
-    const existingUser = await this.userRepository.findOne({ where: { email } });
+    const existingUser = await this.userRepository.findOne({
+      where: { email },
+    });
     if (existingUser) {
       throw new ConflictException('Email already exists');
     }
 
-    const existingUserName = await this.userRepository.findOne({ where: { name } });
+    const existingUserName = await this.userRepository.findOne({
+      where: { name },
+    });
     if (existingUserName) {
       throw new ConflictException('Username already exists');
     }
@@ -131,7 +142,8 @@ export class UserRepository {
       } else if (type === UserType.ADVISOR) {
         const advisor = this.advisorRepository.create({ user: savedUser });
         await this.advisorRepository.save(advisor);
-      } else if (type === UserType.ADMIN) { // Handle ADMIN type
+      } else if (type === UserType.ADMIN) {
+        // Handle ADMIN type
         const admin = this.adminRepository.create({ user: savedUser });
         await this.adminRepository.save(admin);
       } else {
@@ -140,7 +152,9 @@ export class UserRepository {
       return savedUser;
     } catch (err) {
       // Consider more specific error handling if needed
-      throw new InternalServerErrorException('Failed to create associated student/advisor/admin profile.');
+      throw new InternalServerErrorException(
+        'Failed to create associated student/advisor/admin profile.',
+      );
     }
   }
 
@@ -185,85 +199,57 @@ export class UserRepository {
       const user = await this.userRepository.findOne({ where: { id } });
       return user;
     } catch (err) {
-      throw new InternalServerErrorException('Database error finding user by ID.');
+      throw new InternalServerErrorException(
+        'Database error finding user by ID.',
+      );
     }
   }
 
-  async updateUserProfile(
-    userId: string,
-    updateProfileDto: UpdateProfileDto,
-  ): Promise<User> {
+  async updateUserProfile(userId: string, updateProfileDto: UpdateProfileDto) {
     const user = await this.findById(userId);
+
     if (!user) {
       throw new NotFoundException(`User with ID ${userId} not found`);
     }
+    console.log(updateProfileDto);
 
-    if (updateProfileDto.name !== undefined) user.name = updateProfileDto.name;
-    if (updateProfileDto.email !== undefined) user.email = updateProfileDto.email;
-    if (updateProfileDto.dateOfBirth !== undefined) user.DateOfBirth = updateProfileDto.dateOfBirth;
-    if (updateProfileDto.government !== undefined) user.Government = updateProfileDto.government;
-    if (updateProfileDto.district !== undefined) user.District = updateProfileDto.district;
-    if (updateProfileDto.city !== undefined) user.City = updateProfileDto.city;
-    if (updateProfileDto.phoneNumber !== undefined) user.phoneNumber = updateProfileDto.phoneNumber;
-    if (updateProfileDto.gender !== undefined) user.gender = updateProfileDto.gender;
-    if (updateProfileDto.preferredCommunication !== undefined) user.preferredCommunication = updateProfileDto.preferredCommunication;
-
-    if (updateProfileDto.password) {
-      user.password = await bcrypt.hash(updateProfileDto.password, 10);
-    }
+    await this.userRepository.update(
+      { id: userId },
+      {
+        name: updateProfileDto.name,
+        email: updateProfileDto.email,
+        Government: updateProfileDto.government,
+        District: updateProfileDto.district,
+        City: updateProfileDto.city,
+        phoneNumber: updateProfileDto.phoneNumber,
+        gender: updateProfileDto.gender,
+        preferredCommunication: updateProfileDto.preferredCommunication,
+      },
+    );
 
     if (user.type === UserType.STUDENT) {
       const student = await this.findStudentByUserId(userId);
-      if (student) {
-        if (updateProfileDto.certificateType !== undefined) student.certificateType = updateProfileDto.certificateType;
-        if (updateProfileDto.totalScore !== undefined) student.totalScore = updateProfileDto.totalScore;
-        if (updateProfileDto.nationality !== undefined) student.nationality = updateProfileDto.nationality;
-        try {
-          await this.studentRepository.save(student);
-        } catch (studentSaveError) {
-          throw new InternalServerErrorException('Failed to save student profile updates.');
-        }
-      } else {
-        console.warn(`User ${userId} is type STUDENT but no associated student record found for update.`);
+      if (!student) {
+        throw new NotFoundException(
+          `Student associated with user ID ${userId} not found`,
+        );
       }
-    } else if (user.type === UserType.ADVISOR) {
-      const advisor = await this.findAdvisorByUserId(userId);
-      if (advisor) {
-        // Add advisor specific updates here if any in DTO
-        try {
-          await this.advisorRepository.save(advisor);
-        } catch (advisorSaveError) {
-          throw new InternalServerErrorException('Failed to save advisor profile updates.');
-        }
-      } else {
-        console.warn(`User ${userId} is type ADVISOR but no associated advisor record found for update.`);
-      }
-    } else if (user.type === UserType.ADMIN) { // Handle ADMIN type
+      await this.studentRepository.update(
+        { id: student.id },
+        {
+          certificateType: updateProfileDto.certificateType || null,
+          totalScore: updateProfileDto.totalScore || null,
+        },
+      );
+    } else if (user.type === UserType.ADMIN) {
       const admin = await this.findAdminByUserId(userId);
-      if (admin) {
-        // Add admin specific updates here if any in DTO
-        try {
-          await this.adminRepository.save(admin);
-        } catch (adminSaveError) {
-          throw new InternalServerErrorException('Failed to save admin profile updates.');
-        }
-      } else {
-        console.warn(`User ${userId} is type ADMIN but no associated admin record found for update.`);
+      if (!admin) {
+        throw new NotFoundException(
+          `Admin associated with user ID ${userId} not found`,
+        );
       }
+      await this.adminRepository.update({ id: admin.id }, {});
     }
-
-    try {
-      return await this.userRepository.save(user);
-    } catch (err) {
-      if (err.code === '23505') {
-        if (err.detail?.includes('email')) {
-          throw new ConflictException('Email already exists');
-        }
-        if (err.detail?.includes('name')) {
-          throw new ConflictException('Username already exists');
-        }
-      }
-      throw new InternalServerErrorException('Failed to save updated user profile.');
-    }
+    return 'User profile updated successfully';
   }
 }

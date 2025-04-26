@@ -1,4 +1,10 @@
-import { Column, Entity, OneToMany, OneToOne, PrimaryGeneratedColumn, ManyToMany, JoinTable } from 'typeorm';
+import {
+  Column,
+  Entity,
+  OneToMany,
+  OneToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { Student } from './student.entity';
 import { Advisor } from './advisor.entity';
 import { Message } from '../../chat/message.entity'; // Import Message entity
@@ -74,10 +80,10 @@ export class User {
   receivedMessages: Message[];
 
   // --- Favorites --- Use OneToMany with the join entity
-  @OneToMany(() => FavoriteUniversity, fav => fav.user)
+  @OneToMany(() => FavoriteUniversity, (fav) => fav.user)
   favoriteUniversityLinks: FavoriteUniversity[]; // Join entity for universities
 
-  @OneToMany(() => FavoriteScholarship, fav => fav.user)
+  @OneToMany(() => FavoriteScholarship, (fav) => fav.user)
   favoriteScholarshipLinks: FavoriteScholarship[]; // Join entity for scholarships
 
   // --- Created Items (for Advisors) ---

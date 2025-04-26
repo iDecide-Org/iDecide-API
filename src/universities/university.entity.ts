@@ -43,10 +43,13 @@ export class University {
   @Column({ type: 'int' })
   majorsCount: number;
 
-  @Column() // Store image path or URL
+  @Column({ nullable: true }) // Store image path or URL
   image: string;
 
-  @ManyToOne(() => User, (user) => user.createdUniversities, { onDelete: 'SET NULL', nullable: true }) // Link to the advisor (User), set null on delete
+  @ManyToOne(() => User, (user) => user.createdUniversities, {
+    onDelete: 'SET NULL',
+    nullable: true,
+  }) // Link to the advisor (User), set null on delete
   @JoinColumn({ name: 'advisorId' }) // Explicitly name the foreign key column
   advisor: User;
 
@@ -63,4 +66,3 @@ export class University {
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
 }
-

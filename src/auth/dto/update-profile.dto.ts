@@ -1,4 +1,12 @@
-import { IsString, IsEmail, IsOptional, IsDateString, IsEnum, IsNumber, MinLength } from 'class-validator';
+import {
+  IsString,
+  IsEmail,
+  IsOptional,
+  IsDateString,
+  IsEnum,
+  IsNumber,
+  MinLength,
+} from 'class-validator';
 import { CertificateType } from '../users/student.entity';
 
 export class UpdateProfileDto {
@@ -17,7 +25,6 @@ export class UpdateProfileDto {
   password?: string;
 
   @IsOptional()
-  @IsDateString()
   dateOfBirth?: Date;
 
   @IsOptional()

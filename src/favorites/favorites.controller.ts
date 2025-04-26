@@ -1,4 +1,15 @@
-import { Controller, Post, Delete, Get, Param, Req, UseGuards, HttpCode, HttpStatus, ParseUUIDPipe, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Delete,
+  Get,
+  Param,
+  Req,
+  HttpCode,
+  HttpStatus,
+  ParseUUIDPipe,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { FavoritesService } from './favorites.service';
 // import { AuthGuard } from '../auth/auth.guard';
 import { Request } from 'express';
@@ -12,15 +23,16 @@ export class FavoritesController {
     private readonly favoritesService: FavoritesService,
     private readonly jwtService: JwtService,
     private readonly userRepository: UserRepository,
-    ) {}
+  ) {}
 
-   // Helper to get user ID from request
+  // Helper to get user ID from request
   private async getUserIdFromRequest(request: Request): Promise<string> {
     const cookie = request.cookies['jwt'];
     if (!cookie) throw new UnauthorizedException('JWT cookie not found.');
     try {
       const data = await this.jwtService.verifyAsync(cookie);
-      if (!data || !data['id']) throw new UnauthorizedException('Invalid JWT data.');
+      if (!data || !data['id'])
+        throw new UnauthorizedException('Invalid JWT data.');
       // Optional: Verify user exists
       // const user = await this.userRepository.findById(data['id']);
       // if (!user) throw new UnauthorizedException('User not found.');
@@ -44,7 +56,10 @@ export class FavoritesController {
     @Req() request: Request,
   ) {
     const userId = await this.getUserIdFromRequest(request);
-    const isFavorite = await this.favoritesService.isUniversityFavorite(userId, universityId);
+    const isFavorite = await this.favoritesService.isUniversityFavorite(
+      userId,
+      universityId,
+    );
     return { isFavorite };
   }
 
@@ -64,8 +79,11 @@ export class FavoritesController {
     @Param('universityId', ParseUUIDPipe) universityId: string,
     @Req() request: Request,
   ) {
-     const userId = await this.getUserIdFromRequest(request);
-    await this.favoritesService.removeUniversityFromFavorites(userId, universityId);
+    const userId = await this.getUserIdFromRequest(request);
+    await this.favoritesService.removeUniversityFromFavorites(
+      userId,
+      universityId,
+    );
   }
 
   // --- Scholarship Favorites ---
@@ -83,7 +101,10 @@ export class FavoritesController {
     @Req() request: Request,
   ) {
     const userId = await this.getUserIdFromRequest(request);
-    return this.favoritesService.addScholarshipToFavorites(userId, scholarshipId);
+    return this.favoritesService.addScholarshipToFavorites(
+      userId,
+      scholarshipId,
+    );
   }
 
   @Delete('/scholarships/:scholarshipId')
@@ -93,6 +114,9 @@ export class FavoritesController {
     @Req() request: Request,
   ) {
     const userId = await this.getUserIdFromRequest(request);
-    await this.favoritesService.removeScholarshipFromFavorites(userId, scholarshipId);
+    await this.favoritesService.removeScholarshipFromFavorites(
+      userId,
+      scholarshipId,
+    );
   }
 }

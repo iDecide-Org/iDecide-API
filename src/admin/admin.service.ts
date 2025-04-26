@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, ConflictException, Inject, forwardRef } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../auth/users/user.entity';
@@ -38,7 +44,9 @@ export class AdminService {
 
   // --- User Management ---
   async createUser(createUserDto: CreateUserDto) {
-    const existingUser = await this.usersRepository.findOne({ where: { email: createUserDto.email } });
+    const existingUser = await this.usersRepository.findOne({
+      where: { email: createUserDto.email },
+    });
     if (existingUser) {
       throw new ConflictException('User with this email already exists');
     }
@@ -64,7 +72,8 @@ export class AdminService {
 
   async removeUser(id: string) {
     const result = await this.usersRepository.delete(id);
-    if (result.affected === 0) throw new NotFoundException(`User with ID ${id} not found`);
+    if (result.affected === 0)
+      throw new NotFoundException(`User with ID ${id} not found`);
   }
 
   // --- University Management ---
@@ -78,8 +87,11 @@ export class AdminService {
   }
 
   async findOneUniversity(id: string) {
-    const university = await this.universitiesRepository.findOne({ where: { id } });
-    if (!university) throw new NotFoundException(`University with ID ${id} not found`);
+    const university = await this.universitiesRepository.findOne({
+      where: { id },
+    });
+    if (!university)
+      throw new NotFoundException(`University with ID ${id} not found`);
     return university;
   }
 
@@ -91,14 +103,17 @@ export class AdminService {
 
   async removeUniversity(id: string) {
     const result = await this.universitiesRepository.delete(id);
-    if (result.affected === 0) throw new NotFoundException(`University with ID ${id} not found`);
+    if (result.affected === 0)
+      throw new NotFoundException(`University with ID ${id} not found`);
   }
 
   // --- Scholarship Management ---
   async createScholarship(dto: CreateScholarshipDto) {
     const scholarshipData: any = { ...dto };
-    if (dto.eligibility) scholarshipData.eligibility = JSON.stringify(dto.eligibility);
-    if (dto.requirements) scholarshipData.requirements = JSON.stringify(dto.requirements);
+    if (dto.eligibility)
+      scholarshipData.eligibility = JSON.stringify(dto.eligibility);
+    if (dto.requirements)
+      scholarshipData.requirements = JSON.stringify(dto.requirements);
     const scholarship = this.scholarshipsRepository.create(scholarshipData);
     return this.scholarshipsRepository.save(scholarship);
   }
@@ -108,8 +123,11 @@ export class AdminService {
   }
 
   async findOneScholarship(id: string) {
-    const scholarship = await this.scholarshipsRepository.findOne({ where: { id } });
-    if (!scholarship) throw new NotFoundException(`Scholarship with ID ${id} not found`);
+    const scholarship = await this.scholarshipsRepository.findOne({
+      where: { id },
+    });
+    if (!scholarship)
+      throw new NotFoundException(`Scholarship with ID ${id} not found`);
     return scholarship;
   }
 
@@ -121,6 +139,7 @@ export class AdminService {
 
   async removeScholarship(id: string) {
     const result = await this.scholarshipsRepository.delete(id);
-    if (result.affected === 0) throw new NotFoundException(`Scholarship with ID ${id} not found`);
+    if (result.affected === 0)
+      throw new NotFoundException(`Scholarship with ID ${id} not found`);
   }
 }

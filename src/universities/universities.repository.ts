@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { University } from './university.entity';
@@ -17,7 +21,15 @@ export class UniversitiesRepository {
     imagePath: string,
     advisor: User, // Changed parameter name to reflect the user adding the university
   ): Promise<University> {
-    const { name, location, type, establishment, description, collegesCount, majorsCount } = createUniversityDto;
+    const {
+      name,
+      location,
+      type,
+      establishment,
+      description,
+      collegesCount,
+      majorsCount,
+    } = createUniversityDto;
 
     const university = this.universityRepository.create({
       name,
@@ -26,7 +38,7 @@ export class UniversitiesRepository {
       establishment: parseInt(establishment, 10), // Convert string to number
       description,
       collegesCount: parseInt(collegesCount, 10), // Convert string to number
-      majorsCount: parseInt(majorsCount, 10),   // Convert string to number
+      majorsCount: parseInt(majorsCount, 10), // Convert string to number
       image: imagePath, // Save the path/URL from upload
       advisor: advisor, // Keep the original advisor relationship if needed
       advisorId: advisor.id, // Keep the original advisorId if needed
@@ -38,7 +50,7 @@ export class UniversitiesRepository {
       await this.universityRepository.save(university);
       return university;
     } catch (error) {
-      console.error("Error saving university:", error);
+      console.error('Error saving university:', error);
       throw new InternalServerErrorException('Failed to create university.');
     }
   }
@@ -62,26 +74,36 @@ export class UniversitiesRepository {
     try {
       return await this.universityRepository.find({ where: { advisorId } });
     } catch (error) {
-      console.error("Error finding universities by advisor:", error);
-      throw new InternalServerErrorException('Failed to retrieve universities.');
+      console.error('Error finding universities by advisor:', error);
+      throw new InternalServerErrorException(
+        'Failed to retrieve universities.',
+      );
     }
   }
 
   async findAll(): Promise<University[]> {
-     try {
+    try {
       // Include advisor and addedBy relation when finding all universities as well
-      return await this.universityRepository.find({ relations: ['advisor', 'addedBy'] });
+      return await this.universityRepository.find({
+        relations: ['advisor', 'addedBy'],
+      });
     } catch (error) {
-      console.error("Error finding all universities:", error);
-      throw new InternalServerErrorException('Failed to retrieve universities.');
+      console.error('Error finding all universities:', error);
+      throw new InternalServerErrorException(
+        'Failed to retrieve universities.',
+      );
     }
   }
 
   async deleteUniversity(id: string, advisorId: string): Promise<void> {
     // Find the university first to ensure it belongs to the advisor
-    const university = await this.universityRepository.findOne({ where: { id, advisorId } });
+    const university = await this.universityRepository.findOne({
+      where: { id, advisorId },
+    });
     if (!university) {
-      throw new NotFoundException(`University with ID ${id} not found or you don't have permission to delete it.`);
+      throw new NotFoundException(
+        `University with ID ${id} not found or you don't have permission to delete it.`,
+      );
     }
 
     const result = await this.universityRepository.delete({ id, advisorId }); // Ensure advisorId matches

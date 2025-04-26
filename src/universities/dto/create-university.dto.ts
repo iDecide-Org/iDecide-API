@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsEnum, IsInt, Min, Max, IsNumberString } from 'class-validator';
+import { IsString, IsNotEmpty, IsEnum, IsNumberString } from 'class-validator';
 import { UniversityType } from '../university.entity';
 
 export class CreateUniversityDto {

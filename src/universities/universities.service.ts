@@ -6,7 +6,9 @@ import { User } from '../auth/users/user.entity';
 
 @Injectable()
 export class UniversitiesService {
-  constructor(private readonly universitiesRepository: UniversitiesRepository) {}
+  constructor(
+    private readonly universitiesRepository: UniversitiesRepository,
+  ) {}
 
   async addUniversity(
     createUniversityDto: CreateUniversityDto,
@@ -15,9 +17,13 @@ export class UniversitiesService {
   ): Promise<University> {
     // Ensure the user is an advisor
     if (advisor.type !== 'advisor') {
-        throw new UnauthorizedException('Only advisors can add universities.');
+      throw new UnauthorizedException('Only advisors can add universities.');
     }
-    return this.universitiesRepository.createUniversity(createUniversityDto, imagePath, advisor);
+    return this.universitiesRepository.createUniversity(
+      createUniversityDto,
+      imagePath,
+      advisor,
+    );
   }
 
   async getUniversityById(id: string): Promise<University> {
@@ -28,13 +34,13 @@ export class UniversitiesService {
     return this.universitiesRepository.findByAdvisor(advisorId);
   }
 
-   async getAllUniversities(): Promise<University[]> {
+  async getAllUniversities(): Promise<University[]> {
     return this.universitiesRepository.findAll();
   }
 
   async removeUniversity(id: string, advisor: User): Promise<void> {
-     if (advisor.type !== 'advisor') {
-        throw new UnauthorizedException('Only advisors can delete universities.');
+    if (advisor.type !== 'advisor') {
+      throw new UnauthorizedException('Only advisors can delete universities.');
     }
     // The repository method already checks if the advisor owns the university
     await this.universitiesRepository.deleteUniversity(id, advisor.id);

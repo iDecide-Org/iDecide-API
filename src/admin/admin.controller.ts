@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, ParseUUIDPipe, ValidationPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  ParseUUIDPipe,
+  ValidationPipe,
+} from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { AuthGuard } from '@nestjs/passport';
 import { AdminGuard } from './guards/admin.guard';
@@ -36,7 +47,10 @@ export class AdminController {
   }
 
   @Patch('users/:id')
-  updateUser(@Param('id', ParseUUIDPipe) id: string, @Body(ValidationPipe) updateUserDto: UpdateUserDto) {
+  updateUser(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(ValidationPipe) updateUserDto: UpdateUserDto,
+  ) {
     return this.adminService.updateUser(id, updateUserDto);
   }
 
@@ -47,7 +61,9 @@ export class AdminController {
 
   // --- University Management ---
   @Post('universities')
-  createUniversity(@Body(ValidationPipe) createUniversityDto: CreateUniversityDto) {
+  createUniversity(
+    @Body(ValidationPipe) createUniversityDto: CreateUniversityDto,
+  ) {
     return this.adminService.createUniversity(createUniversityDto);
   }
 
@@ -62,7 +78,10 @@ export class AdminController {
   }
 
   @Patch('universities/:id')
-  updateUniversity(@Param('id', ParseUUIDPipe) id: string, @Body(ValidationPipe) updateUniversityDto: UpdateUniversityDto) {
+  updateUniversity(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(ValidationPipe) updateUniversityDto: UpdateUniversityDto,
+  ) {
     return this.adminService.updateUniversity(id, updateUniversityDto);
   }
 
@@ -73,7 +92,9 @@ export class AdminController {
 
   // --- Scholarship Management ---
   @Post('scholarships')
-  createScholarship(@Body(ValidationPipe) createScholarshipDto: CreateScholarshipDto) {
+  createScholarship(
+    @Body(ValidationPipe) createScholarshipDto: CreateScholarshipDto,
+  ) {
     return this.adminService.createScholarship(createScholarshipDto);
   }
 
@@ -88,7 +109,10 @@ export class AdminController {
   }
 
   @Patch('scholarships/:id')
-  updateScholarship(@Param('id', ParseUUIDPipe) id: string, @Body(ValidationPipe) updateScholarshipDto: UpdateScholarshipDto) {
+  updateScholarship(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(ValidationPipe) updateScholarshipDto: UpdateScholarshipDto,
+  ) {
     return this.adminService.updateScholarship(id, updateScholarshipDto);
   }
 

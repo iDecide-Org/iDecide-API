@@ -85,13 +85,13 @@ export class AuthController {
   @HttpCode(HttpStatus.OK) //this will return 200 status code if success
   async getUser(@Req() request: Request) {
     // Log headers and cookies for the /user request
-    this.logger.debug('Incoming headers in getUser:', request.headers);
-    this.logger.debug('Incoming cookies in getUser:', request.cookies);
+    // this.logger.debug('Incoming headers in getUser:', request.headers);
+    // this.logger.debug('Incoming cookies in getUser:', request.cookies);
 
     try {
       const cookie = request.cookies['jwt'];
       if (!cookie) {
-        this.logger.error('JWT cookie not found in getUser request.'); // Log the specific error
+        // this.logger.error('JWT cookie not found in getUser request.'); // Log the specific error
         throw new UnauthorizedException('JWT cookie not found.');
       }
       const data = await this.jwtService.verifyAsync(cookie);
@@ -122,7 +122,8 @@ export class AuthController {
           identificationPic: advisor?.identificationPic,
           isIdentified: advisor?.isIdentified ?? false,
         };
-      } else if (user.type === 'admin') { // Handle admin type
+      } else if (user.type === 'admin') {
+        // Handle admin type
         const admin = await this.userRepository.findAdminByUserId(user.id);
         // Add any admin-specific data to return if needed
         return {
@@ -164,14 +165,10 @@ export class AuthController {
       }
 
       const userId = data['id'];
-      const updatedUser = await this.userRepository.updateUserProfile(
-        userId,
-        updateProfileDto,
-      );
 
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { password, ...result } = updatedUser; // Exclude password from response
-      return { message: 'Profile updated successfully', user: result };
+      await this.userRepository.updateUserProfile(userId, updateProfileDto);
+
+      return { message: 'Profile updated successfully' };
     } catch (e) {
       throw new UnauthorizedException(e.message || 'Failed to update profile');
     }

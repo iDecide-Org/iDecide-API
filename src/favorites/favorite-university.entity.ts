@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, ManyToOne, JoinColumn, Unique, Column } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  JoinColumn,
+  Unique,
+  Column,
+} from 'typeorm';
 import { User } from '../auth/users/user.entity';
 import { University } from '../universities/university.entity';
 
@@ -8,7 +15,9 @@ export class FavoriteUniversity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => User, user => user.favoriteUniversityLinks, { onDelete: 'CASCADE' }) // Corrected property name
+  @ManyToOne(() => User, (user) => user.favoriteUniversityLinks, {
+    onDelete: 'CASCADE',
+  }) // Corrected property name
   @JoinColumn({ name: 'userId' })
   user: User;
 
