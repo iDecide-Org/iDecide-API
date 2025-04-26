@@ -7,9 +7,13 @@ import {
   HttpStatus,
   Param,
   Post,
+  Put, // Import Put
   Req,
   Res,
   UnauthorizedException,
+  ValidationPipe, // Import ValidationPipe
+  Logger, // Import Logger
+  HttpException, // Import HttpException
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignupDto } from './dto/signup.dto';
@@ -17,9 +21,12 @@ import { SigninDto } from './dto/signin.dto';
 import { Request, Response } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { UserRepository } from './users/users.repository';
+import { UpdateProfileDto } from './dto/update-profile.dto'; // Import DTO
 
 @Controller('auth')
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name); // Add Logger instance
+
   constructor(
     private readonly authService: AuthService,
     private jwtService: JwtService,
@@ -34,7 +41,9 @@ export class AuthController {
   ) {
     try {
       const cookie = request.cookies['jwt'];
-
+      if (!cookie) {
+        throw new UnauthorizedException('JWT cookie not found.');
+      }
       const data = await this.jwtService.verifyAsync(cookie);
 
       if (!data) {
@@ -75,46 +84,96 @@ export class AuthController {
   @Get('user')
   @HttpCode(HttpStatus.OK) //this will return 200 status code if success
   async getUser(@Req() request: Request) {
+    // Log headers and cookies for the /user request
+    this.logger.debug('Incoming headers in getUser:', request.headers);
+    this.logger.debug('Incoming cookies in getUser:', request.cookies);
+
     try {
       const cookie = request.cookies['jwt'];
+      if (!cookie) {
+        this.logger.error('JWT cookie not found in getUser request.'); // Log the specific error
+        throw new UnauthorizedException('JWT cookie not found.');
+      }
       const data = await this.jwtService.verifyAsync(cookie);
 
-      if (!data) {
+      if (!data || !data['id']) {
         throw new UnauthorizedException('Unauthorized');
       }
       // find user logic here
       const user = await this.userRepository.findById(data['id']);
 
-      if (user.type === 'student') {
-        const student = await this.userRepository.findStudentByUserId(
-          data['id'],
-        );
-        const status = student.chatbotCompleted;
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { password, id, ...result } = user;
-        //return user and chatbot status and user witout id and password
-        return { ...result, chatbotCompleted: status };
-      } else if (user.type === 'advisor') {
-        const advisor = await this.userRepository.findAdvisorByUserId(
-          data['id'],
-        );
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { password, id, ...result } = user;
-        //return user and advisor specific data without id and password
-        return {
-          ...result,
-          communicationEmail: advisor.communationEmail,
-          communicationNumber: advisor.communicationNumber,
-          identificationPic: advisor.identificationPic,
-          isIdentified: advisor.isIdentified,
-        };
+      if (!user) {
+        throw new UnauthorizedException('User not found');
       }
 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { password, id, ...result } = user;
-      return result;
+      const { password, ...result } = user; // Keep 'id', only remove 'password'
+
+      if (user.type === 'student') {
+        const student = await this.userRepository.findStudentByUserId(user.id);
+        const status = student?.chatbotCompleted ?? false;
+        return { ...result, chatbotCompleted: status }; // Return result (which includes id) + status
+      } else if (user.type === 'advisor') {
+        const advisor = await this.userRepository.findAdvisorByUserId(user.id);
+        return {
+          ...result,
+          communicationEmail: advisor?.communationEmail,
+          communicationNumber: advisor?.communicationNumber,
+          identificationPic: advisor?.identificationPic,
+          isIdentified: advisor?.isIdentified ?? false,
+        };
+      } else if (user.type === 'admin') { // Handle admin type
+        const admin = await this.userRepository.findAdminByUserId(user.id);
+        // Add any admin-specific data to return if needed
+        return {
+          ...result,
+          // Example: isAdmin: true (if you add such a field to Admin entity)
+        };
+      }
+
+      return result; // Fallback return (includes id)
     } catch (e) {
-      throw new UnauthorizedException(e.message);
+      this.logger.error(`Error in getUser: ${e.message}`, e.stack);
+      if (e instanceof UnauthorizedException) {
+        throw e; // Re-throw UnauthorizedException
+      } else {
+        // Throw a generic internal server error for other cases
+        throw new HttpException(
+          'Failed to retrieve user data',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    }
+  }
+
+  @Put('profile') // Use PUT for updates
+  @HttpCode(HttpStatus.OK)
+  async updateProfile(
+    @Req() request: Request,
+    @Body(new ValidationPipe()) updateProfileDto: UpdateProfileDto, // Validate DTO
+  ) {
+    try {
+      const cookie = request.cookies['jwt'];
+      if (!cookie) {
+        throw new UnauthorizedException('JWT cookie not found.');
+      }
+      const data = await this.jwtService.verifyAsync(cookie);
+
+      if (!data || !data['id']) {
+        throw new UnauthorizedException('Unauthorized');
+      }
+
+      const userId = data['id'];
+      const updatedUser = await this.userRepository.updateUserProfile(
+        userId,
+        updateProfileDto,
+      );
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { password, ...result } = updatedUser; // Exclude password from response
+      return { message: 'Profile updated successfully', user: result };
+    } catch (e) {
+      throw new UnauthorizedException(e.message || 'Failed to update profile');
     }
   }
 

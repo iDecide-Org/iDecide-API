@@ -8,6 +8,8 @@ import {
 import { User } from './user.entity';
 
 export enum CertificateType {
+  EGYPTIAN_HIGH_SCHOOL = 'egyptian_high_school', // More specific
+  // Add other certificate types as needed (IGCSE, American Diploma, etc.)
   BACHELOR = 'bachelor',
   MASTER = 'master',
   PHD = 'phd',
@@ -23,7 +25,7 @@ export class Student {
     enum: CertificateType,
     nullable: true,
   })
-  CertificateType: CertificateType;
+  certificateType: CertificateType; // Renamed for clarity
 
   @Column({ nullable: true })
   CertificatePic: string;
@@ -32,7 +34,10 @@ export class Student {
   StudyDivision: string;
 
   @Column({ type: 'float', nullable: true })
-  TotalScore: number;
+  totalScore: number; // Renamed for clarity
+
+  @Column({ nullable: true }) // Add nationality field
+  nationality: string;
 
   @Column({ default: false })
   isStudentCertified: boolean;

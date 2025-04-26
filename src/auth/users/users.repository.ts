@@ -1,14 +1,24 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  InternalServerErrorException,
+  ConflictException,
+  BadRequestException,
+  UnauthorizedException,
+  HttpException, // Keep for generic cases if needed, but prefer specifics
+  HttpStatus,
+} from '@nestjs/common';
 import { User, UserType } from './user.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Student } from './student.entity';
 import { Advisor } from './advisor.entity';
+import { Admin } from './admin.entity'; // Import Admin
 import * as bcrypt from 'bcrypt';
 
-import { HttpException, HttpStatus } from '@nestjs/common';
 import { SignupDto } from '../dto/signup.dto';
 import { SigninDto } from '../dto/signin.dto';
+import { UpdateProfileDto } from '../dto/update-profile.dto';
 
 @Injectable()
 export class UserRepository {
@@ -21,57 +31,76 @@ export class UserRepository {
 
     @InjectRepository(Advisor)
     private readonly advisorRepository: Repository<Advisor>,
+
+    @InjectRepository(Admin) // Inject Admin repository
+    private readonly adminRepository: Repository<Admin>,
   ) {}
 
   async updateChatbotStatus(userId: string, status: boolean): Promise<void> {
+    let student: Student;
     try {
-      const student = await this.studentRepository.findOne({
+      student = await this.studentRepository.findOne({
         where: { user: { id: userId } },
       });
+    } catch (err) {
+      throw new InternalServerErrorException('Database error checking for student.');
+    }
 
-      if (!student) {
-        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
-      }
+    if (!student) {
+      throw new NotFoundException(`Student associated with user ID ${userId} not found`);
+    }
 
+    try {
       student.chatbotCompleted = status;
-
       await this.studentRepository.save(student);
     } catch (err) {
-      throw new HttpException(
-        err.message || 'Internal server error',
-        err.status || HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new InternalServerErrorException('Failed to update chatbot status.');
     }
   }
 
-  async findStudentByUserId(userId: string): Promise<Student> {
+  async findStudentByUserId(userId: string): Promise<Student | null> {
     try {
       return await this.studentRepository.findOne({
         where: { user: { id: userId } },
       });
     } catch (err) {
-      throw new HttpException(
-        err.message || 'Internal server error',
-        err.status || HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new InternalServerErrorException('Database error finding student.');
     }
   }
 
-  async findAdvisorByUserId(userId: string): Promise<Advisor> {
+  async findAdvisorByUserId(userId: string): Promise<Advisor | null> {
     try {
       return await this.advisorRepository.findOne({
         where: { user: { id: userId } },
       });
     } catch (err) {
-      throw new HttpException(
-        err.message || 'Internal server error',
-        err.status || HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new InternalServerErrorException('Database error finding advisor.');
+    }
+  }
+
+  async findAdminByUserId(userId: string): Promise<Admin | null> { // Add findAdminByUserId
+    try {
+      return await this.adminRepository.findOne({
+        where: { user: { id: userId } },
+      });
+    } catch (err) {
+      throw new InternalServerErrorException('Database error finding admin.');
     }
   }
 
   async createUser(signupDto: SignupDto): Promise<User> {
     const { name, password, email, type } = signupDto;
+
+    const existingUser = await this.userRepository.findOne({ where: { email } });
+    if (existingUser) {
+      throw new ConflictException('Email already exists');
+    }
+
+    const existingUserName = await this.userRepository.findOne({ where: { name } });
+    if (existingUserName) {
+      throw new ConflictException('Username already exists');
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = this.userRepository.create({
       name,
@@ -80,68 +109,161 @@ export class UserRepository {
       type,
     });
 
+    let savedUser: User;
     try {
-      const savedUser = await this.userRepository.save(user);
+      savedUser = await this.userRepository.save(user);
+    } catch (err) {
+      if (err.code === '23505') {
+        if (err.detail?.includes('email')) {
+          throw new ConflictException('Email already exists');
+        }
+        if (err.detail?.includes('name')) {
+          throw new ConflictException('Username already exists');
+        }
+      }
+      throw new InternalServerErrorException('Failed to save user.');
+    }
 
+    try {
       if (type === UserType.STUDENT) {
         const student = this.studentRepository.create({ user: savedUser });
         await this.studentRepository.save(student);
       } else if (type === UserType.ADVISOR) {
         const advisor = this.advisorRepository.create({ user: savedUser });
         await this.advisorRepository.save(advisor);
+      } else if (type === UserType.ADMIN) { // Handle ADMIN type
+        const admin = this.adminRepository.create({ user: savedUser });
+        await this.adminRepository.save(admin);
       } else {
-        throw new HttpException('Invalid user type', HttpStatus.BAD_REQUEST);
+        throw new BadRequestException('Invalid user type specified.');
       }
-
       return savedUser;
     } catch (err) {
-      throw new HttpException(
-        err.message || 'Internal server error',
-        err.status || HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      // Consider more specific error handling if needed
+      throw new InternalServerErrorException('Failed to create associated student/advisor/admin profile.');
     }
   }
 
   async validateUser(signinDto: SigninDto): Promise<User> {
     const { email, password } = signinDto;
-
+    let user: User;
     try {
-      const user = await this.userRepository.findOne({ where: { email } });
-      if (!user) {
-        throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
-      }
-
-      const isPasswordValid = await bcrypt.compare(password, user.password);
-
-      if (!isPasswordValid) {
-        throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
-      }
-
-      return user; // Return the user object for further processing
+      user = await this.userRepository.findOne({ where: { email } });
     } catch (err) {
-      throw new HttpException(
-        err.message || 'Internal server error',
-        err.status || HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new InternalServerErrorException('Database error during sign-in.');
     }
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    return user;
   }
 
   async deleteUser(id: string): Promise<void> {
     try {
-      await this.userRepository.delete(id);
+      const result = await this.userRepository.delete(id);
+      if (result.affected === 0) {
+        throw new NotFoundException(`User with ID ${id} not found`);
+      }
     } catch (err) {
-      console.log(err.message);
+      if (err instanceof NotFoundException) {
+        throw err;
+      }
+      console.error(`Failed to delete user ${id}:`, err);
+      throw new InternalServerErrorException('Failed to delete user.');
     }
   }
 
-  async findById(id: string): Promise<User> {
+  async findById(id: string): Promise<User | null> {
     try {
-      return await this.userRepository.findOne({ where: { id } });
+      const user = await this.userRepository.findOne({ where: { id } });
+      return user;
     } catch (err) {
-      throw new HttpException(
-        err.message || 'Internal server error',
-        err.status || HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new InternalServerErrorException('Database error finding user by ID.');
+    }
+  }
+
+  async updateUserProfile(
+    userId: string,
+    updateProfileDto: UpdateProfileDto,
+  ): Promise<User> {
+    const user = await this.findById(userId);
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    if (updateProfileDto.name !== undefined) user.name = updateProfileDto.name;
+    if (updateProfileDto.email !== undefined) user.email = updateProfileDto.email;
+    if (updateProfileDto.dateOfBirth !== undefined) user.DateOfBirth = updateProfileDto.dateOfBirth;
+    if (updateProfileDto.government !== undefined) user.Government = updateProfileDto.government;
+    if (updateProfileDto.district !== undefined) user.District = updateProfileDto.district;
+    if (updateProfileDto.city !== undefined) user.City = updateProfileDto.city;
+    if (updateProfileDto.phoneNumber !== undefined) user.phoneNumber = updateProfileDto.phoneNumber;
+    if (updateProfileDto.gender !== undefined) user.gender = updateProfileDto.gender;
+    if (updateProfileDto.preferredCommunication !== undefined) user.preferredCommunication = updateProfileDto.preferredCommunication;
+
+    if (updateProfileDto.password) {
+      user.password = await bcrypt.hash(updateProfileDto.password, 10);
+    }
+
+    if (user.type === UserType.STUDENT) {
+      const student = await this.findStudentByUserId(userId);
+      if (student) {
+        if (updateProfileDto.certificateType !== undefined) student.certificateType = updateProfileDto.certificateType;
+        if (updateProfileDto.totalScore !== undefined) student.totalScore = updateProfileDto.totalScore;
+        if (updateProfileDto.nationality !== undefined) student.nationality = updateProfileDto.nationality;
+        try {
+          await this.studentRepository.save(student);
+        } catch (studentSaveError) {
+          throw new InternalServerErrorException('Failed to save student profile updates.');
+        }
+      } else {
+        console.warn(`User ${userId} is type STUDENT but no associated student record found for update.`);
+      }
+    } else if (user.type === UserType.ADVISOR) {
+      const advisor = await this.findAdvisorByUserId(userId);
+      if (advisor) {
+        // Add advisor specific updates here if any in DTO
+        try {
+          await this.advisorRepository.save(advisor);
+        } catch (advisorSaveError) {
+          throw new InternalServerErrorException('Failed to save advisor profile updates.');
+        }
+      } else {
+        console.warn(`User ${userId} is type ADVISOR but no associated advisor record found for update.`);
+      }
+    } else if (user.type === UserType.ADMIN) { // Handle ADMIN type
+      const admin = await this.findAdminByUserId(userId);
+      if (admin) {
+        // Add admin specific updates here if any in DTO
+        try {
+          await this.adminRepository.save(admin);
+        } catch (adminSaveError) {
+          throw new InternalServerErrorException('Failed to save admin profile updates.');
+        }
+      } else {
+        console.warn(`User ${userId} is type ADMIN but no associated admin record found for update.`);
+      }
+    }
+
+    try {
+      return await this.userRepository.save(user);
+    } catch (err) {
+      if (err.code === '23505') {
+        if (err.detail?.includes('email')) {
+          throw new ConflictException('Email already exists');
+        }
+        if (err.detail?.includes('name')) {
+          throw new ConflictException('Username already exists');
+        }
+      }
+      throw new InternalServerErrorException('Failed to save updated user profile.');
     }
   }
 }

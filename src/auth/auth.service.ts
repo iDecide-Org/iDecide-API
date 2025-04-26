@@ -22,7 +22,13 @@ export class AuthService {
 
       // Generate a JWT token
       const token = this.jwtService.sign({ id: user.id, email: user.email });
-      response.cookie('jwt', token, { httpOnly: true });
+      const isProd = process.env.NODE_ENV === 'production';
+      response.cookie('jwt', token, {
+        httpOnly: true,
+        path: '/',
+        sameSite: isProd ? 'none' : 'lax', // Use 'lax' in development
+        secure: isProd, // Keep secure only in production
+      });
 
       // Return the user and token
       return { token };
@@ -35,7 +41,13 @@ export class AuthService {
     try {
       const user = await this.userRepository.validateUser(signinDto);
       const jwt = await this.jwtService.signAsync({ id: user.id });
-      response.cookie('jwt', jwt, { httpOnly: true });
+      const isProd = process.env.NODE_ENV === 'production';
+      response.cookie('jwt', jwt, {
+        httpOnly: true,
+        path: '/',
+        sameSite: isProd ? 'none' : 'lax', // Use 'lax' in development
+        secure: isProd, // Keep secure only in production
+      });
 
       return { message: 'Success' };
     } catch (err) {

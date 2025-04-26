@@ -4,6 +4,7 @@ import {
   JoinColumn,
   OneToOne,
   PrimaryGeneratedColumn,
+  ManyToOne, // Import ManyToOne
 } from 'typeorm';
 import { User } from './user.entity';
 
