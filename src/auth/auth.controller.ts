@@ -117,9 +117,11 @@ export class AuthController {
         return { ...transformedUser, ...student }; // Return result (which includes id) + status
       } else if (user.type === 'advisor') {
         const advisor = await this.userRepository.findAdvisorByUserId(user.id);
+
         return {
-          ...transformedUser,
-          ...advisor, // Include advisor data if needed
+          ...advisor,
+          ...transformedUser, // overwrite advisor id with transformedUser
+          advisorId: advisor.id, // Include advisorId if needed
         };
       } else if (user.type === 'admin') {
         // Handle admin type
