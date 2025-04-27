@@ -45,6 +45,22 @@ export class UniversitiesService {
     // The repository method already checks if the advisor owns the university
     await this.universitiesRepository.deleteUniversity(id, advisor.id);
   }
-
+  async updateUniversity(
+    id: string,
+    updateUniversityDto: CreateUniversityDto,
+    imagePath: string,
+    advisor: User,
+  ): Promise<University> {
+    // Ensure the user is an advisor
+    if (advisor.type !== 'advisor') {
+      throw new UnauthorizedException('Only advisors can update universities.');
+    }
+    return this.universitiesRepository.updateUniversity(
+      id,
+      updateUniversityDto,
+      imagePath,
+      advisor,
+    );
+  }
   // Add update service method later
 }

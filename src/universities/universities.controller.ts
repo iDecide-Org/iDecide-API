@@ -13,7 +13,8 @@ import {
   UnauthorizedException,
   ParseUUIDPipe,
   ValidationPipe,
-  Logger, // Import Logger
+  Logger,
+  Patch, // Import Logger
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -150,5 +151,25 @@ export class UniversitiesController {
     // No need to return anything on success (NO_CONTENT)
   }
 
-  // Add PUT endpoint for updates later
+  // Add Patch or Put methods if needed for updating universities
+  @Patch(':id')
+  // @UseGuards(AuthGuard)
+  @UseInterceptors(FileInterceptor('image', { storage })) // 'image' should match the field name in the form
+  async updateUniversity(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(new ValidationPipe()) createUniversityDto: CreateUniversityDto,
+    @UploadedFile() file: Express.Multer.File, // Use imported Express type
+    @Req() request: Request,
+  ) {
+    const user = await this.getUserFromRequest(request);
+    const imagePath = createUniversityDto.image || '/'; // Or construct a URL if serving files statically
+    console.log('user');
+
+    return this.universitiesService.updateUniversity(
+      id,
+      createUniversityDto,
+      imagePath,
+      user,
+    );
+  }
 }

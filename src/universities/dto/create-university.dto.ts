@@ -1,4 +1,10 @@
-import { IsString, IsNotEmpty, IsEnum, IsNumberString } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsEnum,
+  IsNumberString,
+  IsOptional,
+} from 'class-validator';
 import { UniversityType } from '../university.entity';
 
 export class CreateUniversityDto {
@@ -31,4 +37,7 @@ export class CreateUniversityDto {
   majorsCount: string; // Receive as string, convert in service
 
   // Image will be handled separately via file upload
+  @IsString()
+  @IsOptional()
+  image?: string; // This will be set in the service after file upload
 }

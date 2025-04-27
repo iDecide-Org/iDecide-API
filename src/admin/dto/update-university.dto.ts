@@ -1,4 +1,11 @@
-import { IsString, IsOptional, IsNumber, Min, Max, IsEnum } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsNumber,
+  Min,
+  Max,
+  IsEnum,
+} from 'class-validator';
 import { UniversityType } from '../../universities/university.entity';
 
 export class UpdateUniversityDto {

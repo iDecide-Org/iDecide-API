@@ -115,4 +115,28 @@ export class UniversitiesRepository {
   }
 
   // Add updateUniversity method later if needed
+  async updateUniversity(
+    id: string,
+    updateUniversityDto: CreateUniversityDto,
+    imagePath: string,
+    advisor: User,
+  ): Promise<University> {
+    const university = await this.findById(id);
+    if (university.advisorId !== advisor.id) {
+      throw new NotFoundException(
+        `You do not have permission to update this university.`,
+      );
+    }
+
+    // Update the university properties
+    Object.assign(university, updateUniversityDto, { image: imagePath });
+
+    try {
+      await this.universityRepository.save(university);
+      return university;
+    } catch (error) {
+      console.error('Error updating university:', error);
+      throw new InternalServerErrorException('Failed to update university.');
+    }
+  }
 }
