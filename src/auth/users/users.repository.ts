@@ -218,9 +218,10 @@ export class UserRepository {
       {
         name: updateProfileDto.name,
         email: updateProfileDto.email,
+        DateOfBirth: updateProfileDto.dateOfBirth,
         Government: updateProfileDto.government,
         District: updateProfileDto.district,
-        City: updateProfileDto.city,
+        city: updateProfileDto.city,
         phoneNumber: updateProfileDto.phoneNumber,
         gender: updateProfileDto.gender,
         preferredCommunication: updateProfileDto.preferredCommunication,
@@ -239,6 +240,7 @@ export class UserRepository {
         {
           certificateType: updateProfileDto.certificateType || null,
           totalScore: updateProfileDto.totalScore || null,
+          nationality: updateProfileDto.nationality || null,
         },
       );
     } else if (user.type === UserType.ADMIN) {

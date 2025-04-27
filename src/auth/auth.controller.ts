@@ -22,6 +22,7 @@ import { Request, Response } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { UserRepository } from './users/users.repository';
 import { UpdateProfileDto } from './dto/update-profile.dto'; // Import DTO
+import { instanceToPlain } from 'class-transformer';
 
 @Controller('auth')
 export class AuthController {
@@ -106,33 +107,29 @@ export class AuthController {
         throw new UnauthorizedException('User not found');
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { password, ...result } = user; // Keep 'id', only remove 'password'
+      const transformedUser = instanceToPlain(user); // remove password and other sensitive data
 
       if (user.type === 'student') {
         const student = await this.userRepository.findStudentByUserId(user.id);
-        const status = student?.chatbotCompleted ?? false;
-        return { ...result, chatbotCompleted: status }; // Return result (which includes id) + status
+        if (!student) {
+          throw new UnauthorizedException('Student not found');
+        }
+        return { ...transformedUser, ...student }; // Return result (which includes id) + status
       } else if (user.type === 'advisor') {
         const advisor = await this.userRepository.findAdvisorByUserId(user.id);
         return {
-          ...result,
-          communicationEmail: advisor?.communationEmail,
-          communicationNumber: advisor?.communicationNumber,
-          identificationPic: advisor?.identificationPic,
-          isIdentified: advisor?.isIdentified ?? false,
+          ...transformedUser,
+          ...advisor, // Include advisor data if needed
         };
       } else if (user.type === 'admin') {
         // Handle admin type
         const admin = await this.userRepository.findAdminByUserId(user.id);
         // Add any admin-specific data to return if needed
         return {
-          ...result,
-          // Example: isAdmin: true (if you add such a field to Admin entity)
+          ...transformedUser,
+          ...admin, // Include admin data if needed
         };
       }
-
-      return result; // Fallback return (includes id)
     } catch (e) {
       this.logger.error(`Error in getUser: ${e.message}`, e.stack);
       if (e instanceof UnauthorizedException) {

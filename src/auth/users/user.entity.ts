@@ -13,6 +13,7 @@ import { Scholarship } from '../../scholarships/scholarship.entity'; // Import S
 import { FavoriteUniversity } from '../../favorites/favorite-university.entity'; // Import FavoriteUniversity
 import { FavoriteScholarship } from '../../favorites/favorite-scholarship.entity'; // Import FavoriteScholarship
 import { Admin } from './admin.entity'; // Import Admin entity
+import { Exclude } from 'class-transformer';
 
 export enum UserType {
   STUDENT = 'student',
@@ -32,6 +33,7 @@ export class User {
   email: string;
 
   @Column()
+  @Exclude() // Exclude password from serialization
   password: string;
 
   @Column({ nullable: true }) // Allow null for profile pic initially
@@ -50,7 +52,7 @@ export class User {
   District: string;
 
   @Column({ nullable: true })
-  City: string;
+  city: string;
 
   @Column({ nullable: true }) // Allow null for phone number initially
   phoneNumber: string;
