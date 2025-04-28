@@ -1,4 +1,14 @@
-import { Controller, Post, Body, UseGuards, Req, HttpCode, HttpStatus, Get, Param } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Req,
+  HttpCode,
+  HttpStatus,
+  Get,
+  Param,
+} from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -25,7 +35,11 @@ export class ChatController {
   ) {
     const senderId = req.user.id;
     const { receiverId, content } = createMessageDto;
-    const message = await this.chatService.createMessage(senderId, receiverId, content);
+    const message = await this.chatService.createMessage(
+      senderId,
+      receiverId,
+      content,
+    );
     // Note: Emitting via WebSocket might be better handled within the service after saving
     // or triggered via an event emitter if complex logic is needed.
     return message;
@@ -45,6 +59,8 @@ export class ChatController {
     @Req() req: AuthenticatedRequest,
   ) {
     const userId = req.user.id;
+    console.log(userId);
+
     return this.chatService.getMessages(userId, otherUserId);
   }
 

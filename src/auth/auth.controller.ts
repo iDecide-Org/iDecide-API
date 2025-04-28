@@ -114,7 +114,7 @@ export class AuthController {
         if (!student) {
           throw new UnauthorizedException('Student not found');
         }
-        return { ...transformedUser, ...student }; // Return result (which includes id) + status
+        return { ...student, ...transformedUser }; // Return result (which includes id) + status
       } else if (user.type === 'advisor') {
         const advisor = await this.userRepository.findAdvisorByUserId(user.id);
 
