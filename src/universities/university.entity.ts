@@ -5,8 +5,9 @@ import {
   Column,
   ManyToOne,
   JoinColumn,
+  OneToMany,
 } from 'typeorm';
-import { FavoriteUniversity } from '../favorites/favorite-university.entity';
+import { Scholarship } from '../scholarships/scholarship.entity'; // Import Scholarship
 
 export enum UniversityType {
   GOVERNMENTAL = 'حكومية',
@@ -65,4 +66,8 @@ export class University {
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
+
+  @OneToMany(() => Scholarship, (scholarship) => scholarship.university) // Add relation to Scholarship
+  // return all scholarships related to this university
+  scholarships: Scholarship[];
 }

@@ -85,7 +85,7 @@ export class UniversitiesRepository {
     try {
       // Include advisor and addedBy relation when finding all universities as well
       return await this.universityRepository.find({
-        relations: ['advisor', 'addedBy'],
+        relations: ['advisor', 'addedBy', 'scholarships'], // Load the related advisor and addedBy entities
       });
     } catch (error) {
       console.error('Error finding all universities:', error);

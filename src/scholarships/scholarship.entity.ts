@@ -1,5 +1,13 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, ManyToMany } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  ManyToMany,
+} from 'typeorm';
 import { User } from '../auth/users/user.entity'; // Import User for advisor relation
+import { University } from '../universities/university.entity'; // Import University
 
 export enum ScholarshipType {
   FULL = 'كاملة',
@@ -7,10 +15,10 @@ export enum ScholarshipType {
 }
 
 export enum ScholarshipCoverage {
-    TUITION = 'رسوم دراسية',
-    LIVING_EXPENSES = 'مصاريف معيشة',
-    TRAVEL = 'سفر',
-    OTHER = 'أخرى',
+  TUITION = 'رسوم دراسية',
+  LIVING_EXPENSES = 'مصاريف معيشة',
+  TRAVEL = 'سفر',
+  OTHER = 'أخرى',
 }
 
 @Entity()
@@ -43,8 +51,8 @@ export class Scholarship {
   link: string; // Link to the scholarship application/details page
 
   @Column({
-      type: 'simple-array', // Store coverage options as an array of strings
-      nullable: true,
+    type: 'simple-array', // Store coverage options as an array of strings
+    nullable: true,
   })
   coverage: ScholarshipCoverage[]; // What the scholarship covers
 
@@ -53,6 +61,15 @@ export class Scholarship {
 
   @Column({ nullable: true }) // Optional: Target field of study
   fieldOfStudy?: string;
+
+  @ManyToOne(() => University, (university) => university.scholarships, {
+    onDelete: 'CASCADE',
+  }) // Add relation to University
+  @JoinColumn({ name: 'universityId' })
+  university: University;
+
+  @Column({ nullable: true }) // Allow scholarships not tied to a specific university initially if needed
+  universityId: string;
 
   @ManyToOne(() => User, (user) => user.createdScholarships) // Link to the advisor (User) who added it
   @JoinColumn({ name: 'advisorId' })
@@ -65,13 +82,10 @@ export class Scholarship {
   createdAt: Date;
 
   // Relation for users who favorited this scholarship
-  @ManyToMany(() => User, user => user.favoriteScholarshipLinks) // Corrected property name
+  @ManyToMany(() => User, (user) => user.favoriteScholarshipLinks) // Corrected property name
   favoritedBy: User[];
 }
 
-// Add createdScholarships relation to User entity
-import { OneToMany } from 'typeorm';
-
-// Add this to User entity in user.entity.ts:
+// Add createdScholarships relation to User entity in user.entity.ts:
 // @OneToMany(() => Scholarship, (scholarship) => scholarship.advisor)
 // createdScholarships: Scholarship[];

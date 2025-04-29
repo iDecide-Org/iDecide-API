@@ -22,6 +22,7 @@ import { Request } from 'express';
 import { JwtService } from '@nestjs/jwt'; // To verify JWT
 import { UserRepository } from '../auth/users/users.repository'; // To get user details
 import { User } from '../auth/users/user.entity';
+import { instanceToPlain } from 'class-transformer';
 
 @Controller('scholarships')
 export class ScholarshipsController {
@@ -46,7 +47,8 @@ export class ScholarshipsController {
       if (!user) {
         throw new UnauthorizedException('User not found.');
       }
-      return user;
+      const userPlain = instanceToPlain(user); // exclude password
+      return userPlain as User; // Cast to User type
     } catch (e) {
       throw new UnauthorizedException('Invalid or expired JWT.');
     }
@@ -59,6 +61,7 @@ export class ScholarshipsController {
     @Req() request: Request,
   ) {
     const user = await this.getUserFromRequest(request);
+
     return this.scholarshipsService.addScholarship(createScholarshipDto, user);
   }
 
@@ -67,17 +70,19 @@ export class ScholarshipsController {
   async getAdvisorScholarships(@Req() request: Request) {
     const user = await this.getUserFromRequest(request);
     if (user.type !== 'advisor') {
-      throw new UnauthorizedException('Only advisors can access this resource.');
+      throw new UnauthorizedException(
+        'Only advisors can access this resource.',
+      );
     }
+
     return this.scholarshipsService.getScholarshipsByAdvisor(user.id);
   }
 
-   @Get() // General route for everyone (e.g., students)
-   // No AuthGuard needed if public
-   async getAllScholarships() {
-     return this.scholarshipsService.getAllScholarships();
-   }
-
+  @Get() // General route for everyone (e.g., students)
+  // No AuthGuard needed if public
+  async getAllScholarships() {
+    return this.scholarshipsService.getAllScholarships();
+  }
 
   @Get(':id')
   // No AuthGuard needed if public
@@ -89,11 +94,16 @@ export class ScholarshipsController {
   // @UseGuards(AuthGuard)
   async updateScholarship(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body(new ValidationPipe({ skipMissingProperties: true })) updateScholarshipDto: UpdateScholarshipDto,
+    @Body(new ValidationPipe({ skipMissingProperties: true }))
+    updateScholarshipDto: UpdateScholarshipDto,
     @Req() request: Request,
   ) {
     const user = await this.getUserFromRequest(request);
-    return this.scholarshipsService.updateScholarship(id, user, updateScholarshipDto);
+    return this.scholarshipsService.updateScholarship(
+      id,
+      user,
+      updateScholarshipDto,
+    );
   }
 
   @Delete(':id')

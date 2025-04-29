@@ -1,4 +1,13 @@
-import { IsString, IsNotEmpty, IsEnum, IsDateString, IsUrl, IsOptional, IsArray } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsEnum,
+  IsDateString,
+  IsUrl,
+  IsOptional,
+  IsArray,
+  IsUUID, // Import IsUUID
+} from 'class-validator';
 import { ScholarshipType, ScholarshipCoverage } from '../scholarship.entity';
 
 export class CreateScholarshipDto {
@@ -42,4 +51,8 @@ export class CreateScholarshipDto {
   @IsOptional()
   @IsString()
   fieldOfStudy?: string;
+
+  @IsUUID()
+  @IsNotEmpty() // Make universityId mandatory
+  universityId: string;
 }

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Scholarship } from './scholarship.entity';
@@ -17,7 +21,19 @@ export class ScholarshipsRepository {
     createScholarshipDto: CreateScholarshipDto,
     advisor: User,
   ): Promise<Scholarship> {
-    const { name, provider, type, description, eligibility, deadline, link, coverage, country, fieldOfStudy } = createScholarshipDto;
+    const {
+      name,
+      provider,
+      type,
+      description,
+      eligibility,
+      deadline,
+      link,
+      coverage,
+      country,
+      fieldOfStudy,
+      universityId, // Destructure universityId
+    } = createScholarshipDto;
 
     const scholarship = this.scholarshipRepository.create({
       name,
@@ -32,19 +48,23 @@ export class ScholarshipsRepository {
       fieldOfStudy,
       advisor: advisor,
       advisorId: advisor.id,
+      universityId: universityId, // Assign universityId
     });
 
     try {
       await this.scholarshipRepository.save(scholarship);
       return scholarship;
     } catch (error) {
-      console.error("Error saving scholarship:", error);
+      console.error('Error saving scholarship:', error);
       throw new InternalServerErrorException('Failed to create scholarship.');
     }
   }
 
   async findById(id: string): Promise<Scholarship> {
-    const scholarship = await this.scholarshipRepository.findOne({ where: { id } });
+    const scholarship = await this.scholarshipRepository.findOne({
+      where: { id },
+      relations: ['university'], // Optionally load university relation
+    });
     if (!scholarship) {
       throw new NotFoundException(`Scholarship with ID ${id} not found.`);
     }
@@ -53,20 +73,29 @@ export class ScholarshipsRepository {
 
   async findByAdvisor(advisorId: string): Promise<Scholarship[]> {
     try {
-      return await this.scholarshipRepository.find({ where: { advisorId } });
+      return await this.scholarshipRepository.find({
+        where: { advisorId },
+        relations: ['university'], // Optionally load university relation
+      });
     } catch (error) {
-      console.error("Error finding scholarships by advisor:", error);
-      throw new InternalServerErrorException('Failed to retrieve scholarships.');
+      console.error('Error finding scholarships by advisor:', error);
+      throw new InternalServerErrorException(
+        'Failed to retrieve scholarships.',
+      );
     }
   }
 
   async findAll(): Promise<Scholarship[]> {
-     try {
-      // Consider adding relations if needed, e.g., advisor details
-      return await this.scholarshipRepository.find();
+    try {
+      // Consider adding relations if needed, e.g., advisor details, university
+      return await this.scholarshipRepository.find({
+        relations: ['university'],
+      });
     } catch (error) {
-      console.error("Error finding all scholarships:", error);
-      throw new InternalServerErrorException('Failed to retrieve scholarships.');
+      console.error('Error finding all scholarships:', error);
+      throw new InternalServerErrorException(
+        'Failed to retrieve scholarships.',
+      );
     }
   }
 
@@ -75,10 +104,14 @@ export class ScholarshipsRepository {
     advisorId: string,
     updateScholarshipDto: UpdateScholarshipDto,
   ): Promise<Scholarship> {
-    const scholarship = await this.scholarshipRepository.findOne({ where: { id, advisorId } });
+    const scholarship = await this.scholarshipRepository.findOne({
+      where: { id, advisorId },
+    });
 
     if (!scholarship) {
-      throw new NotFoundException(`Scholarship with ID ${id} not found or you don't have permission to update it.`);
+      throw new NotFoundException(
+        `Scholarship with ID ${id} not found or you don't have permission to update it.`,
+      );
     }
 
     // Prepare data for merging, ensuring correct types for the entity
@@ -104,16 +137,20 @@ export class ScholarshipsRepository {
       await this.scholarshipRepository.save(scholarship);
       return scholarship;
     } catch (error) {
-      console.error("Error updating scholarship:", error);
+      console.error('Error updating scholarship:', error);
       throw new InternalServerErrorException('Failed to update scholarship.');
     }
   }
 
   async deleteScholarship(id: string, advisorId: string): Promise<void> {
     // Find the scholarship first to ensure it belongs to the advisor
-    const scholarship = await this.scholarshipRepository.findOne({ where: { id, advisorId } });
+    const scholarship = await this.scholarshipRepository.findOne({
+      where: { id, advisorId },
+    });
     if (!scholarship) {
-      throw new NotFoundException(`Scholarship with ID ${id} not found or you don't have permission to delete it.`);
+      throw new NotFoundException(
+        `Scholarship with ID ${id} not found or you don't have permission to delete it.`,
+      );
     }
 
     const result = await this.scholarshipRepository.delete({ id, advisorId }); // Ensure advisorId matches
