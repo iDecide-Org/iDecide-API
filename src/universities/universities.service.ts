@@ -2,7 +2,8 @@ import {
   Injectable,
   UnauthorizedException,
   NotFoundException,
-} from '@nestjs/common'; // Add NotFoundException
+  ConflictException, // Import ConflictException
+} from '@nestjs/common';
 import { UniversitiesRepository } from './universities.repository';
 import { CreateUniversityDto } from './dto/create-university.dto';
 import { University } from './university.entity';
@@ -16,13 +17,24 @@ export class UniversitiesService {
 
   async addUniversity(
     createUniversityDto: CreateUniversityDto,
-    imagePath: string,
+    imagePath: string | null, // Allow null
     advisor: User,
   ): Promise<University> {
     // Ensure the user is an advisor
     if (advisor.type !== 'advisor') {
       throw new UnauthorizedException('Only advisors can add universities.');
     }
+
+    // Check if a university with the same name already exists
+    const existingUniversity = await this.universitiesRepository.findByName(
+      createUniversityDto.name,
+    );
+    if (existingUniversity) {
+      throw new ConflictException(
+        `University with name "${createUniversityDto.name}" already exists.`,
+      );
+    }
+
     return this.universitiesRepository.createUniversity(
       createUniversityDto,
       imagePath,
@@ -31,6 +43,7 @@ export class UniversitiesService {
   }
 
   async getUniversityById(id: string): Promise<University> {
+    // findById throws NotFoundException if not found
     return this.universitiesRepository.findById(id);
   }
 
@@ -46,37 +59,27 @@ export class UniversitiesService {
     if (advisor.type !== 'advisor') {
       throw new UnauthorizedException('Only advisors can delete universities.');
     }
-    // The repository method already checks if the advisor owns the university
+    // Repository method handles ownership check and throws NotFoundException
     await this.universitiesRepository.deleteUniversity(id, advisor.id);
   }
 
   async updateUniversity(
     id: string,
-    updateUniversityDto: Partial<CreateUniversityDto>, // Change this to Partial
-    imagePath: string | null | undefined, // Allow undefined to signify no change
+    updateUniversityDto: Partial<CreateUniversityDto>,
+    imagePath: string | null | undefined,
     advisor: User,
   ): Promise<University> {
-    // Ensure the user is an advisor
     if (advisor.type !== 'advisor') {
       throw new UnauthorizedException('Only advisors can update universities.');
     }
 
-    // Fetch the existing university first to ensure it exists and belongs to the advisor
-    const existingUniversity = await this.universitiesRepository.findByAdvisor(
-      advisor.id,
-    );
-    if (!existingUniversity) {
-      throw new NotFoundException(
-        `University with ID "${id}" not found or not managed by this advisor.`,
-      );
-    }
-
-    // Pass the partial DTO and image path to the repository method
+    // Repository method handles ownership check and duplicate name check on update
+    // It throws NotFoundException or ConflictException
     return this.universitiesRepository.updateUniversity(
-      id, // Pass the ID to identify the university
+      id,
       updateUniversityDto,
       imagePath,
-      advisor, // Pass advisor for potential ownership checks in repository if needed again
+      advisor,
     );
   }
 }

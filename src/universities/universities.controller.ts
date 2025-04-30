@@ -15,7 +15,7 @@ import {
   ValidationPipe,
   Logger,
   Patch,
-  BadRequestException, // Import BadRequestException
+  BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -84,7 +84,11 @@ export class UniversitiesController {
         throw new UnauthorizedException('User not found.');
       }
       return user;
-    } catch (e) {
+    } catch (error) {
+      this.logger.error(
+        `JWT verification failed: ${error.message}`,
+        error.stack,
+      );
       throw new UnauthorizedException('Invalid or expired JWT.');
     }
   }
@@ -171,6 +175,7 @@ export class UniversitiesController {
 
     const imagePath = file ? `/uploads/universities/${file.filename}` : null; // Correctly use file path if uploaded
 
+    // The service method now handles the existence check before creation
     return this.universitiesService.addUniversity(
       createUniversityDto,
       imagePath, // Pass the actual path or null

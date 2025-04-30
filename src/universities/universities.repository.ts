@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   InternalServerErrorException,
+  ConflictException, // Import ConflictException
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -21,6 +22,14 @@ export class UniversitiesRepository {
     imagePath: string,
     advisor: User, // Changed parameter name to reflect the user adding the university
   ): Promise<University> {
+    // Check for duplicate name before creating
+    const existingUniversity = await this.findByName(createUniversityDto.name);
+    if (existingUniversity) {
+      throw new ConflictException(
+        `University with name "${createUniversityDto.name}" already exists.`,
+      );
+    }
+
     const {
       name,
       location,
@@ -72,7 +81,10 @@ export class UniversitiesRepository {
 
   async findByAdvisor(advisorId: string): Promise<University[]> {
     try {
-      return await this.universityRepository.find({ where: { advisorId } });
+      return await this.universityRepository.find({
+        where: { advisorId },
+        relations: ['colleges'],
+      });
     } catch (error) {
       console.error('Error finding universities by advisor:', error);
       throw new InternalServerErrorException(
@@ -129,6 +141,24 @@ export class UniversitiesRepository {
       );
     }
 
+    // Check if the name is being updated and if the new name already exists for another university
+    if (
+      updateUniversityDto.name &&
+      updateUniversityDto.name !== university.name
+    ) {
+      const existingUniversityWithNewName = await this.findByName(
+        updateUniversityDto.name,
+      );
+      if (
+        existingUniversityWithNewName &&
+        existingUniversityWithNewName.id !== id
+      ) {
+        throw new ConflictException(
+          `Another university with the name "${updateUniversityDto.name}" already exists.`,
+        );
+      }
+    }
+
     // Prepare updates, converting numeric fields if present
     const updates: Partial<University> = {};
     if (updateUniversityDto.name !== undefined)
@@ -166,5 +196,9 @@ export class UniversitiesRepository {
       console.error('Error updating university:', error);
       throw new InternalServerErrorException('Failed to update university.');
     }
+  }
+
+  async findByName(name: string): Promise<University | null> {
+    return this.universityRepository.findOne({ where: { name } });
   }
 }
