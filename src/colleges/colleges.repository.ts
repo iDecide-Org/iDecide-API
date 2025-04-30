@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   UnauthorizedException,
+  InternalServerErrorException, // Import InternalServerErrorException
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -39,6 +40,17 @@ export class CollegesRepository {
     });
     await this.collegeRepository.save(college);
     return college;
+  }
+
+  async findAll(): Promise<College[]> {
+    try {
+      return await this.collegeRepository.find({
+        relations: ['university', 'majors'], // Optionally load relations
+      });
+    } catch (error) {
+      console.error('Error finding all colleges:', error);
+      throw new InternalServerErrorException('Failed to retrieve colleges.');
+    }
   }
 
   async findAllByUniversity(universityId: string): Promise<College[]> {

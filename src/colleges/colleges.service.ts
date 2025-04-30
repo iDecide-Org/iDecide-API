@@ -20,6 +20,10 @@ export class CollegesService {
     return this.collegesRepository.createCollege(createCollegeDto, user.id);
   }
 
+  async findAll(): Promise<College[]> {
+    return this.collegesRepository.findAll();
+  }
+
   async findAllByUniversity(universityId: string): Promise<College[]> {
     // Public access? Or check ownership?
     return this.collegesRepository.findAllByUniversity(universityId);

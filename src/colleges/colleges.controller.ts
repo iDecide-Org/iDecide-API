@@ -13,6 +13,7 @@ import {
   HttpCode,
   HttpStatus,
   Query,
+  BadRequestException,
 } from '@nestjs/common';
 import { CollegesService } from './colleges.service';
 import { CreateCollegeDto } from './dto/create-college.dto';
@@ -39,11 +40,22 @@ export class CollegesController {
 
   // Get all colleges (potentially filtered by university)
   @Get()
-  findAll(@Query('universityId') universityId?: string) {
+  findAll(
+    @Query(
+      'universityId',
+      new ParseUUIDPipe({
+        optional: true,
+        exceptionFactory: () =>
+          new BadRequestException('Invalid University ID format.'),
+      }),
+    )
+    universityId?: string,
+  ) {
     if (universityId) {
       return this.collegesService.findAllByUniversity(universityId);
+    } else {
+      return this.collegesService.findAll();
     }
-    throw new Error('University ID is required to list colleges.');
   }
 
   // Get a specific college
