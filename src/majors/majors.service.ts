@@ -17,6 +17,10 @@ export class MajorsService {
     return this.majorsRepository.createMajor(createMajorDto, user.id);
   }
 
+  async findAll(): Promise<Major[]> {
+    return this.majorsRepository.findAll();
+  }
+
   async findAllByCollege(collegeId: string): Promise<Major[]> {
     // Public access? Or check ownership?
     return this.majorsRepository.findAllByCollege(collegeId);

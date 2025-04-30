@@ -13,6 +13,7 @@ import {
   HttpCode,
   HttpStatus,
   Query,
+  BadRequestException, // Import BadRequestException
 } from '@nestjs/common';
 import { MajorsService } from './majors.service';
 import { CreateMajorDto } from './dto/create-major.dto';
@@ -37,11 +38,22 @@ export class MajorsController {
   }
 
   @Get()
-  findAll(@Query('collegeId') collegeId?: string) {
+  findAll(
+    @Query(
+      'collegeId',
+      new ParseUUIDPipe({
+        optional: true,
+        exceptionFactory: () =>
+          new BadRequestException('Invalid College ID format.'),
+      }),
+    )
+    collegeId?: string,
+  ) {
     if (collegeId) {
       return this.majorsService.findAllByCollege(collegeId);
+    } else {
+      return this.majorsService.findAll();
     }
-    throw new Error('College ID is required to list majors.');
   }
 
   @Get(':id')
