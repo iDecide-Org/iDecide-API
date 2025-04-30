@@ -22,12 +22,22 @@ import { CollegesModule } from './colleges/colleges.module';
 import { MajorsModule } from './majors/majors.module';
 import { College } from './colleges/entities/college.entity'; // Import College entity
 import { Major } from './majors/entities/major.entity'; // Import Major entity
+import { LoggerModule } from 'nestjs-pino'; // Import LoggerModule
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
+    }),
+    LoggerModule.forRoot({
+      pinoHttp: {
+        transport:
+          process.env.NODE_ENV !== 'production'
+            ? { target: 'pino-pretty', options: { singleLine: true } }
+            : undefined,
+        level: process.env.NODE_ENV !== 'production' ? 'debug' : 'info',
+      },
     }),
     TypeOrmModule.forRoot({
       type: 'postgres',

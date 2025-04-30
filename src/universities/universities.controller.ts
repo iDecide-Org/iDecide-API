@@ -14,7 +14,8 @@ import {
   ParseUUIDPipe,
   ValidationPipe,
   Logger,
-  Patch, // Import Logger
+  Patch,
+  BadRequestException, // Import BadRequestException
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -25,6 +26,8 @@ import { CreateUniversityDto } from './dto/create-university.dto';
 import { Request, Express } from 'express'; // Import Express
 import { JwtService } from '@nestjs/jwt'; // To verify JWT
 import { UserRepository } from '../auth/users/users.repository'; // To get user details
+import { HttpService } from '@nestjs/axios'; // Import HttpService
+import { firstValueFrom } from 'rxjs'; // Import firstValueFrom
 
 // Configure Multer Storage
 const storage = diskStorage({
@@ -46,6 +49,7 @@ export class UniversitiesController {
     private readonly universitiesService: UniversitiesService,
     private readonly jwtService: JwtService, // Inject JwtService
     private readonly userRepository: UserRepository, // Inject UserRepository
+    private readonly httpService: HttpService, // Inject HttpService
   ) {}
 
   // Helper to get user from request
@@ -85,6 +89,61 @@ export class UniversitiesController {
     }
   }
 
+  // Helper function to validate university name against Wikidata
+  private async isValidUniversityName(name: string): Promise<boolean> {
+    const sparqlQuery = `
+      SELECT ?univ ?enLabel ?arLabel WHERE {
+        ?univ wdt:P31 wd:Q3918;         # instance of University
+               wdt:P17 wd:Q79.          # country = Egypt
+
+        OPTIONAL {
+          ?univ rdfs:label ?enLabel .
+          FILTER(LANG(?enLabel) = "en")
+        }
+
+        OPTIONAL {
+          ?univ rdfs:label ?arLabel .
+          FILTER(LANG(?arLabel) = "ar")
+        }
+      }
+    `;
+    const endpointUrl = `https://query.wikidata.org/sparql?query=${encodeURIComponent(
+      sparqlQuery,
+    )}&format=json`;
+
+    try {
+      this.logger.debug(`Querying Wikidata for university: ${name}`);
+      const response = await firstValueFrom(
+        this.httpService.get(endpointUrl, {
+          headers: { Accept: 'application/sparql-results+json' },
+        }),
+      );
+
+      const bindings = response.data?.results?.bindings;
+      if (!bindings) {
+        this.logger.warn('No bindings found in Wikidata response.');
+        return false; // Or handle as an error depending on requirements
+      }
+
+      // Check if any result has a matching Arabic label (case-insensitive)
+      const isValid = bindings.some(
+        (binding: any) =>
+          binding.arLabel?.value?.toLowerCase() === name.toLowerCase(),
+      );
+
+      this.logger.debug(`Wikidata validation result for "${name}": ${isValid}`);
+      return isValid;
+    } catch (error) {
+      this.logger.error(
+        `Error querying Wikidata SPARQL endpoint: ${error.message}`,
+        error.stack,
+      );
+      // Decide how to handle errors - fail validation or allow if Wikidata is down?
+      // For now, let's consider it invalid if the check fails.
+      return false;
+    }
+  }
+
   @Post()
   // @UseGuards(AuthGuard) // Protect this route
   @UseInterceptors(FileInterceptor('image', { storage })) // 'image' should match the field name in the form
@@ -97,15 +156,24 @@ export class UniversitiesController {
     this.logger.debug('Incoming headers in addUniversity:', request.headers);
     this.logger.debug('Incoming cookies in addUniversity:', request.cookies);
 
-    // if (!file) {
-    //   // Handle case where file is not uploaded, maybe throw BadRequestException
-    //   throw new Error('University image is required.');
-    // }
     const user = await this.getUserFromRequest(request);
-    const imagePath = '/'; // Or construct a URL if serving files statically
+
+    // --- Validation Step ---
+    const isValidName = await this.isValidUniversityName(
+      createUniversityDto.name,
+    );
+    if (!isValidName) {
+      throw new BadRequestException(
+        `University name "${createUniversityDto.name}" is not a recognized university in Egypt according to Wikidata.`,
+      );
+    }
+    // --- End Validation Step ---
+
+    const imagePath = file ? `/uploads/universities/${file.filename}` : null; // Correctly use file path if uploaded
+
     return this.universitiesService.addUniversity(
       createUniversityDto,
-      imagePath,
+      imagePath, // Pass the actual path or null
       user,
     );
   }
@@ -151,24 +219,44 @@ export class UniversitiesController {
     // No need to return anything on success (NO_CONTENT)
   }
 
-  // Add Patch or Put methods if needed for updating universities
   @Patch(':id')
   // @UseGuards(AuthGuard)
   @UseInterceptors(FileInterceptor('image', { storage })) // 'image' should match the field name in the form
   async updateUniversity(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body(new ValidationPipe()) createUniversityDto: CreateUniversityDto,
+    @Body(new ValidationPipe())
+    updateUniversityDto: Partial<CreateUniversityDto>, // Use Partial for updates
     @UploadedFile() file: Express.Multer.File, // Use imported Express type
     @Req() request: Request,
   ) {
     const user = await this.getUserFromRequest(request);
-    const imagePath = createUniversityDto.image || '/'; // Or construct a URL if serving files statically
-    console.log('user');
+
+    // --- Optional: Add validation for name change during update ---
+    if (updateUniversityDto.name) {
+      const isValidName = await this.isValidUniversityName(
+        updateUniversityDto.name,
+      );
+      if (!isValidName) {
+        throw new BadRequestException(
+          `University name "${updateUniversityDto.name}" is not a recognized university in Egypt according to Wikidata.`,
+        );
+      }
+    }
+    // --- End Validation Step ---
+
+    // Determine image path: use new file if uploaded, otherwise keep existing or use DTO value
+    let imagePath: string | null | undefined = undefined; // undefined means don't update image path
+    if (file) {
+      imagePath = `/uploads/universities/${file.filename}`;
+    } else if (updateUniversityDto.image !== undefined) {
+      // Allow explicitly setting image path via DTO (e.g., to null or a different path)
+      imagePath = updateUniversityDto.image;
+    }
 
     return this.universitiesService.updateUniversity(
       id,
-      createUniversityDto,
-      imagePath,
+      updateUniversityDto,
+      imagePath, // Pass the determined path
       user,
     );
   }

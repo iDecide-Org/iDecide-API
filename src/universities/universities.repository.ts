@@ -114,25 +114,53 @@ export class UniversitiesRepository {
     }
   }
 
-  // Add updateUniversity method later if needed
   async updateUniversity(
     id: string,
-    updateUniversityDto: CreateUniversityDto,
-    imagePath: string,
+    updateUniversityDto: Partial<CreateUniversityDto>, // Change to Partial
+    imagePath: string | null | undefined, // Allow undefined/null
     advisor: User,
   ): Promise<University> {
-    const university = await this.findById(id);
+    const university = await this.findById(id); // findById already includes advisor check logic implicitly via service/controller
+
+    // Explicitly check ownership again for safety, although service layer should handle this
     if (university.advisorId !== advisor.id) {
-      throw new NotFoundException(
+      throw new NotFoundException( // Or UnauthorizedException
         `You do not have permission to update this university.`,
       );
     }
 
-    // Update the university properties
-    Object.assign(university, updateUniversityDto, { image: imagePath });
+    // Prepare updates, converting numeric fields if present
+    const updates: Partial<University> = {};
+    if (updateUniversityDto.name !== undefined)
+      updates.name = updateUniversityDto.name;
+    if (updateUniversityDto.location !== undefined)
+      updates.location = updateUniversityDto.location;
+    if (updateUniversityDto.type !== undefined)
+      updates.type = updateUniversityDto.type;
+    if (updateUniversityDto.establishment !== undefined)
+      updates.establishment = parseInt(updateUniversityDto.establishment, 10);
+    if (updateUniversityDto.description !== undefined)
+      updates.description = updateUniversityDto.description;
+    if (updateUniversityDto.collegesCount !== undefined)
+      updates.collegesCount = parseInt(updateUniversityDto.collegesCount, 10);
+    if (updateUniversityDto.majorsCount !== undefined)
+      updates.majorsCount = parseInt(updateUniversityDto.majorsCount, 10);
+
+    // Handle image update:
+    // - If imagePath is provided (string or null), update the image field.
+    // - If imagePath is undefined, do not update the image field.
+    if (imagePath !== undefined) {
+      updates.image = imagePath;
+    }
+
+    // Merge the updates into the existing university entity
+    Object.assign(university, updates);
 
     try {
       await this.universityRepository.save(university);
+      // Refetch to ensure relations are loaded correctly after save if needed,
+      // or ensure save returns the updated entity with relations.
+      // For simplicity, returning the modified object directly here.
       return university;
     } catch (error) {
       console.error('Error updating university:', error);

@@ -71,7 +71,9 @@ export class Scholarship {
   @Column({ nullable: true }) // Allow scholarships not tied to a specific university initially if needed
   universityId: string;
 
-  @ManyToOne(() => User, (user) => user.createdScholarships) // Link to the advisor (User) who added it
+  @ManyToOne(() => User, (user) => user.createdScholarships, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'advisorId' })
   advisor: User;
 

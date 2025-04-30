@@ -3,9 +3,16 @@ import { AppModule } from './app.module';
 import * as cookieParser from 'cookie-parser';
 import helmet from 'helmet'; // Import helmet
 import { ValidationPipe } from '@nestjs/common'; // Import ValidationPipe
+import { Logger } from 'nestjs-pino'; // Import Logger from nestjs-pino
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    // Use Pino logger, buffer logs until logger is ready
+    bufferLogs: true,
+  });
+
+  // Use Pino logger instance
+  app.useLogger(app.get(Logger));
 
   // Security Middleware
   app.use(helmet()); // Apply helmet middleware
