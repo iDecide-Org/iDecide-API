@@ -4,8 +4,10 @@ import {
   PrimaryGeneratedColumn,
   Column,
   ManyToOne,
+  OneToOne,
   JoinColumn,
   OneToMany,
+  Unique,
 } from 'typeorm';
 import { Scholarship } from '../scholarships/scholarship.entity'; // Import Scholarship
 import { College } from '../colleges/entities/college.entity'; // Import College
@@ -17,6 +19,7 @@ export enum UniversityType {
 }
 
 @Entity()
+@Unique(['advisorId']) // Add unique constraint for advisorId
 export class University {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -48,17 +51,17 @@ export class University {
   @Column({ nullable: true }) // Store image path or URL
   image: string;
 
-  @ManyToOne(() => User, (user) => user.createdUniversities, {
+  @OneToOne(() => User, (user) => user.createdUniversity, {
     onDelete: 'SET NULL',
     nullable: true,
   }) // Link to the advisor (User), set null on delete
   @JoinColumn({ name: 'advisorId' }) // Explicitly name the foreign key column
   advisor: User;
 
-  @Column({ nullable: true }) // Store the advisor's ID directly, allow null
+  @Column({ nullable: true, unique: true }) // Ensure advisorId column itself is marked unique
   advisorId: string;
 
-  @ManyToOne(() => User, (user) => user.universities, { onDelete: 'CASCADE' }) // Add onDelete: 'CASCADE'
+  @OneToOne(() => User, { onDelete: 'CASCADE' }) // Add onDelete: 'CASCADE'
   @JoinColumn({ name: 'addedById' })
   addedBy: User;
 

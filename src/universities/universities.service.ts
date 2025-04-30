@@ -7,7 +7,7 @@ import {
 import { UniversitiesRepository } from './universities.repository';
 import { CreateUniversityDto } from './dto/create-university.dto';
 import { University } from './university.entity';
-import { User } from '../auth/users/user.entity';
+import { User, UserType } from '../auth/users/user.entity'; // Import UserType
 
 @Injectable()
 export class UniversitiesService {
@@ -21,15 +21,22 @@ export class UniversitiesService {
     advisor: User,
   ): Promise<University> {
     // Ensure the user is an advisor
-    if (advisor.type !== 'advisor') {
+    if (advisor.type !== UserType.ADVISOR) {
+      // Use enum for type check
       throw new UnauthorizedException('Only advisors can add universities.');
     }
 
-    // Check if a university with the same name already exists
-    const existingUniversity = await this.universitiesRepository.findByName(
-      createUniversityDto.name,
-    );
-    if (existingUniversity) {
+    // Check if the advisor already has a university
+    const existingUniversityForAdvisor =
+      await this.universitiesRepository.findByAdvisorId(advisor.id); // Use findByAdvisorId
+    if (existingUniversityForAdvisor) {
+      throw new ConflictException('Advisors can only add one university.');
+    }
+
+    // Check if a university with the same name already exists (keep this check)
+    const existingUniversityWithName =
+      await this.universitiesRepository.findByName(createUniversityDto.name);
+    if (existingUniversityWithName) {
       throw new ConflictException(
         `University with name "${createUniversityDto.name}" already exists.`,
       );
@@ -47,8 +54,11 @@ export class UniversitiesService {
     return this.universitiesRepository.findById(id);
   }
 
-  async getUniversitiesByAdvisor(advisorId: string): Promise<University[]> {
-    return this.universitiesRepository.findByAdvisor(advisorId);
+  async getUniversitiesByAdvisor(
+    advisorId: string,
+  ): Promise<University | null> {
+    // Update return type
+    return this.universitiesRepository.findByAdvisorId(advisorId); // Use findByAdvisorId
   }
 
   async getAllUniversities(): Promise<University[]> {
@@ -56,7 +66,8 @@ export class UniversitiesService {
   }
 
   async removeUniversity(id: string, advisor: User): Promise<void> {
-    if (advisor.type !== 'advisor') {
+    if (advisor.type !== UserType.ADVISOR) {
+      // Use enum for type check
       throw new UnauthorizedException('Only advisors can delete universities.');
     }
     // Repository method handles ownership check and throws NotFoundException
@@ -69,7 +80,8 @@ export class UniversitiesService {
     imagePath: string | null | undefined,
     advisor: User,
   ): Promise<University> {
-    if (advisor.type !== 'advisor') {
+    if (advisor.type !== UserType.ADVISOR) {
+      // Use enum for type check
       throw new UnauthorizedException('Only advisors can update universities.');
     }
 

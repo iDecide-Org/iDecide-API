@@ -79,17 +79,17 @@ export class UniversitiesRepository {
     return university;
   }
 
-  async findByAdvisor(advisorId: string): Promise<University[]> {
+  async findByAdvisorId(advisorId: string): Promise<University | null> {
     try {
-      return await this.universityRepository.find({
+      // Find one university where the advisorId matches
+      return await this.universityRepository.findOne({
         where: { advisorId },
-        relations: ['colleges'],
+        relations: ['colleges', 'scholarships'], // Include relations if needed
       });
     } catch (error) {
-      console.error('Error finding universities by advisor:', error);
-      throw new InternalServerErrorException(
-        'Failed to retrieve universities.',
-      );
+      console.error('Error finding university by advisor ID:', error);
+      // Don't throw InternalServerError, let the service handle null return
+      return null;
     }
   }
 

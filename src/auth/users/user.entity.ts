@@ -4,6 +4,7 @@ import {
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
+  JoinColumn, // Import JoinColumn
 } from 'typeorm';
 import { Student } from './student.entity';
 import { Advisor } from './advisor.entity';
@@ -67,12 +68,15 @@ export class User {
   createdAt: Date;
 
   @OneToOne(() => Student, (student) => student.user, { nullable: true })
+  @JoinColumn() // Add JoinColumn for clarity, though TypeORM might infer it
   student: Student;
 
   @OneToOne(() => Advisor, (advisor) => advisor.user, { nullable: true })
+  @JoinColumn() // Add JoinColumn
   advisor: Advisor;
 
   @OneToOne(() => Admin, (admin) => admin.user, { nullable: true }) // Add relation to Admin
+  @JoinColumn() // Add JoinColumn
   admin: Admin;
 
   @OneToMany(() => Message, (message) => message.sender) // Relation for sent messages
@@ -89,13 +93,9 @@ export class User {
   favoriteScholarshipLinks: FavoriteScholarship[]; // Join entity for scholarships
 
   // --- Created Items (for Advisors) ---
-  @OneToMany(() => University, (university) => university.advisor) // Relation for universities created by advisor
-  createdUniversities: University[];
+  @OneToOne(() => University, (university) => university.advisor) // Relation for the university created by advisor
+  createdUniversity: University; // Rename from createdUniversities
 
   @OneToMany(() => Scholarship, (scholarship) => scholarship.advisor) // Relation for scholarships created by advisor
   createdScholarships: Scholarship[];
-
-  // Add the inverse relationship for universities added by this user
-  @OneToMany(() => University, (university) => university.addedBy)
-  universities: University[];
 }
