@@ -8,6 +8,7 @@ import {
   OneToMany,
 } from 'typeorm';
 import { Scholarship } from '../scholarships/scholarship.entity'; // Import Scholarship
+import { College } from '../colleges/entities/college.entity'; // Import College
 
 export enum UniversityType {
   GOVERNMENTAL = 'حكومية',
@@ -70,4 +71,7 @@ export class University {
   @OneToMany(() => Scholarship, (scholarship) => scholarship.university) // Add relation to Scholarship
   // return all scholarships related to this university
   scholarships: Scholarship[];
+
+  @OneToMany(() => College, (college) => college.university) // Add relation to College
+  colleges: College[];
 }

@@ -18,6 +18,10 @@ import { Scholarship } from './scholarships/scholarship.entity'; // Import Schol
 import { ScholarshipsModule } from './scholarships/scholarship.module'; // Import ScholarshipModule
 import { FavoriteScholarship } from './favorites/favorite-scholarship.entity'; // Import FavoriteScholarship
 import { AdminModule } from './admin/admin.module';
+import { CollegesModule } from './colleges/colleges.module';
+import { MajorsModule } from './majors/majors.module';
+import { College } from './colleges/entities/college.entity'; // Import College entity
+import { Major } from './majors/entities/major.entity'; // Import Major entity
 
 @Module({
   imports: [
@@ -42,6 +46,8 @@ import { AdminModule } from './admin/admin.module';
         FavoriteUniversity,
         Scholarship, // Add Scholarship
         FavoriteScholarship, // Add FavoriteScholarship
+        College, // Add College entity
+        Major, // Add Major entity
       ],
       synchronize: process.env.NODE_ENV !== 'production', // synchronize: true only in dev
     }),
@@ -50,7 +56,9 @@ import { AdminModule } from './admin/admin.module';
     UniversitiesModule,
     FavoritesModule,
     ScholarshipsModule,
-    AdminModule, // Add ScholarshipModule
+    AdminModule,
+    CollegesModule,
+    MajorsModule, // Add ScholarshipModule
   ],
   controllers: [AppController],
   providers: [AppService],
