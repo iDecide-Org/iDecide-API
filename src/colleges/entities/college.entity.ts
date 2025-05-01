@@ -20,6 +20,12 @@ export class College {
   @Column({ type: 'text', nullable: true })
   description: string;
 
+  @Column({ nullable: true })
+  location: string;
+
+  @Column({ nullable: true })
+  website: string;
+
   @ManyToOne(() => University, (university) => university.colleges, {
     onDelete: 'CASCADE',
   })

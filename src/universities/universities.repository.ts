@@ -68,7 +68,7 @@ export class UniversitiesRepository {
     // Use relations to fetch the advisor along with the university
     const university = await this.universityRepository.findOne({
       where: { id },
-      relations: ['advisor', 'addedBy'], // Load the related advisor and addedBy entities
+      relations: ['advisor', 'addedBy', 'scholarships', 'colleges'], // Load the related advisor and addedBy entities
     });
     if (!university) {
       throw new NotFoundException(`University with ID ${id} not found.`);
