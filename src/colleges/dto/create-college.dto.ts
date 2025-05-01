@@ -1,4 +1,10 @@
-import { IsString, IsNotEmpty, IsOptional, IsUUID } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsUUID,
+  IsUrl,
+} from 'class-validator';
 
 export class CreateCollegeDto {
   @IsString()
@@ -8,6 +14,14 @@ export class CreateCollegeDto {
   @IsString()
   @IsOptional()
   description?: string;
+
+  @IsString()
+  @IsOptional()
+  location?: string; // Add location field
+
+  @IsUrl() // Validate if it's a URL
+  @IsOptional()
+  website?: string; // Add website field
 
   @IsUUID()
   @IsNotEmpty()

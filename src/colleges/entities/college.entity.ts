@@ -3,13 +3,13 @@ import {
   PrimaryGeneratedColumn,
   Column,
   ManyToOne,
-  JoinColumn,
   OneToMany,
+  JoinColumn,
 } from 'typeorm';
 import { University } from 'src/universities/university.entity';
 import { Major } from 'src/majors/entities/major.entity';
 
-@Entity()
+@Entity('college')
 export class College {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -20,21 +20,24 @@ export class College {
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true }) // Add location column
   location: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true }) // Add website column
   website: string;
-
-  @ManyToOne(() => University, (university) => university.colleges, {
-    onDelete: 'CASCADE',
-  })
-  @JoinColumn({ name: 'universityId' })
-  university: University;
 
   @Column()
   universityId: string;
 
-  @OneToMany(() => Major, (major) => major.college)
+  @ManyToOne(() => University, (university) => university.colleges, {
+    onDelete: 'CASCADE', // Ensure colleges are deleted if university is deleted
+  })
+  @JoinColumn({ name: 'universityId' }) // Explicitly define the join column
+  university: University;
+
+  @OneToMany(() => Major, (major) => major.college, {
+    cascade: true, // Ensure majors are handled when college changes
+    eager: false, // Load majors only when explicitly requested
+  })
   majors: Major[];
 }

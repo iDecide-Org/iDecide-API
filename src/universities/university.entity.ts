@@ -3,7 +3,6 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  ManyToOne,
   OneToOne,
   JoinColumn,
   OneToMany,
@@ -47,6 +46,15 @@ export class University {
 
   @Column({ type: 'int' })
   majorsCount: number;
+
+  @Column({ nullable: true }) // Allow null for optional fields
+  website: string;
+
+  @Column({ nullable: true }) // Allow null for optional fields
+  phone: string;
+
+  @Column({ nullable: true }) // Allow null for optional fields
+  email: string;
 
   @Column({ nullable: true }) // Store image path or URL
   image: string;

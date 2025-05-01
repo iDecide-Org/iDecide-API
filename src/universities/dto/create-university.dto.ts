@@ -40,4 +40,16 @@ export class CreateUniversityDto {
   @IsString()
   @IsOptional()
   image?: string; // This will be set in the service after file upload
+
+  @IsString()
+  @IsOptional()
+  website?: string; // Optional field for website
+
+  @IsString()
+  @IsOptional()
+  phone?: string; // Optional field for phone
+
+  @IsString()
+  @IsOptional()
+  email?: string; // Optional field for email
 }

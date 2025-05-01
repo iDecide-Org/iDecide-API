@@ -175,6 +175,12 @@ export class UniversitiesRepository {
       updates.collegesCount = parseInt(updateUniversityDto.collegesCount, 10);
     if (updateUniversityDto.majorsCount !== undefined)
       updates.majorsCount = parseInt(updateUniversityDto.majorsCount, 10);
+    if (updateUniversityDto.website !== undefined)
+      updates.website = updateUniversityDto.website;
+    if (updateUniversityDto.phone !== undefined)
+      updates.phone = updateUniversityDto.phone;
+    if (updateUniversityDto.email !== undefined)
+      updates.email = updateUniversityDto.email;
 
     // Handle image update:
     // - If imagePath is provided (string or null), update the image field.
