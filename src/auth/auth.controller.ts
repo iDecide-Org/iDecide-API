@@ -231,4 +231,14 @@ export class AuthController {
       );
     }
   }
+  @Get('user/:id')
+  @HttpCode(HttpStatus.OK)
+  async getNameOfUser(@Param('id') id: string) {
+    const user = await this.userRepository.findById(id);
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+    const name = user.name;
+    return { name };
+  }
 }
