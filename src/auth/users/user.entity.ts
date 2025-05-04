@@ -67,6 +67,14 @@ export class User {
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
 
+  // --- Password Reset Fields ---
+  @Column({ nullable: true })
+  resetPasswordToken: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  resetPasswordExpires: Date;
+  // ---------------------------
+
   @OneToOne(() => Student, (student) => student.user, { nullable: true })
   @JoinColumn() // Add JoinColumn for clarity, though TypeORM might infer it
   student: Student;

@@ -14,6 +14,7 @@ import {
   ValidationPipe, // Import ValidationPipe
   Logger, // Import Logger
   HttpException, // Import HttpException
+  BadRequestException, // Import BadRequestException
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignupDto } from './dto/signup.dto';
@@ -23,6 +24,8 @@ import { JwtService } from '@nestjs/jwt';
 import { UserRepository } from './users/users.repository';
 import { UpdateProfileDto } from './dto/update-profile.dto'; // Import DTO
 import { instanceToPlain } from 'class-transformer';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -179,5 +182,53 @@ export class AuthController {
     return {
       message: 'Success',
     };
+  }
+
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  async forgotPassword(
+    @Body(new ValidationPipe()) forgotPasswordDto: ForgotPasswordDto,
+  ) {
+    try {
+      await this.authService.forgotPassword(forgotPasswordDto.email);
+      // Always return a generic success message to avoid revealing if an email exists
+      return {
+        message:
+          'If an account with that email exists, a password reset link has been sent.',
+      };
+    } catch (error) {
+      this.logger.error(`Forgot password error: ${error.message}`, error.stack);
+      // Avoid leaking information about email existence in errors too
+      return {
+        message:
+          'If an account with that email exists, a password reset link has been sent.',
+      };
+    }
+  }
+
+  @Post('reset-password/:token')
+  @HttpCode(HttpStatus.OK)
+  async resetPassword(
+    @Param('token') token: string,
+    @Body(new ValidationPipe()) resetPasswordDto: ResetPasswordDto,
+  ) {
+    try {
+      await this.authService.resetPassword(token, resetPasswordDto.password);
+      return { message: 'Password reset successfully.' };
+    } catch (error) {
+      this.logger.error(`Reset password error: ${error.message}`, error.stack);
+      // Handle specific errors thrown by the service (e.g., invalid/expired token)
+      if (
+        error instanceof BadRequestException ||
+        error instanceof UnauthorizedException
+      ) {
+        throw error; // Re-throw known exceptions
+      }
+      // Generic error for other cases
+      throw new HttpException(
+        'Failed to reset password.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 }

@@ -11,6 +11,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PassportModule } from '@nestjs/passport'; // Import PassportModule
 import { JwtStrategy } from './strategies/jwt.strategy'; // Import JwtStrategy
+import { EmailModule } from '../email/email.module'; // Import EmailModule
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { JwtStrategy } from './strategies/jwt.strategy'; // Import JwtStrategy
       }),
     }),
     ConfigModule,
+    EmailModule, // Add EmailModule here
   ],
   controllers: [AuthController],
   providers: [AuthService, UserRepository, JwtStrategy], // Add JwtStrategy to providers
