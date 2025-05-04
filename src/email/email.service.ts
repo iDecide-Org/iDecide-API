@@ -14,8 +14,8 @@ export class EmailService {
       port: 465,
       secure: true, // true for 465, false for other ports
       auth: {
-        user: 'jodojodo780@gmail.com', // Replace with your email from config/env
-        pass: 'aeby rnzh gvuv tbaj', // Replace with your app password from config/env
+        user: this.configService.get<string>('EMAIL_USER'),
+        pass: this.configService.get<string>('EMAIL_PASS'),
       },
     };
 
