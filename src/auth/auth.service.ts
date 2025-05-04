@@ -3,8 +3,6 @@ import {
   HttpStatus,
   Injectable,
   Logger,
-  NotFoundException,
-  UnauthorizedException,
   BadRequestException,
   Inject,
 } from '@nestjs/common';
@@ -112,7 +110,7 @@ export class AuthService {
       );
 
       // Use FRONTEND_URL from environment variables
-      const frontendUrl = this.configService.get<string>('FRONTEND_URL');
+      const frontendUrl = 'http://localhost:5173';
       if (!frontendUrl) {
         this.logger.error('FRONTEND_URL environment variable is not set.');
         // Decide how to handle this - maybe throw an internal server error
