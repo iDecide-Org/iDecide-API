@@ -9,8 +9,6 @@ export class EmailService {
   private transporter: Mail;
 
   constructor(private readonly configService: ConfigService) {
-    console.log(this.configService.get<string>('EMAIL_HOST'));
-
     // Inject ConfigService if used
     // Configure the SMTP transporter
     // Ensure you have these environment variables set:
