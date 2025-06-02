@@ -7,7 +7,7 @@ import {
 import { UniversitiesRepository } from './universities.repository';
 import { CreateUniversityDto } from './dto/create-university.dto';
 import { UpdateUniversityDto } from './dto/update-university.dto';
-import { University } from './university.entity';
+import { University, UniversityType } from './university.entity';
 import { User, UserType } from '../auth/users/user.entity';
 
 @Injectable()
@@ -48,6 +48,7 @@ export class UniversitiesService {
       establishment: parseInt(createUniversityDto.establishment, 10),
       collegesCount: parseInt(createUniversityDto.collegesCount, 10),
       majorsCount: parseInt(createUniversityDto.majorsCount, 10),
+      type: createUniversityDto.type as UniversityType,
       image: imagePath,
       advisor,
       advisorId: advisor.id,
@@ -130,7 +131,8 @@ export class UniversitiesService {
     if (updateUniversityDto.name) updateData.name = updateUniversityDto.name;
     if (updateUniversityDto.location)
       updateData.location = updateUniversityDto.location;
-    if (updateUniversityDto.type) updateData.type = updateUniversityDto.type;
+    if (updateUniversityDto.type)
+      updateData.type = updateUniversityDto.type as UniversityType;
     if (updateUniversityDto.establishment)
       updateData.establishment = parseInt(
         updateUniversityDto.establishment,

@@ -1,47 +1,128 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as cookieParser from 'cookie-parser';
-import helmet from 'helmet'; // Import helmet
-import { ValidationPipe } from '@nestjs/common'; // Import ValidationPipe
-import { Logger } from 'nestjs-pino'; // Import Logger from nestjs-pino
+import helmet from 'helmet';
+import { ValidationPipe } from '@nestjs/common';
+import { Logger } from 'nestjs-pino';
+import * as compression from 'compression';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+import { RateLimitInterceptor } from './common/interceptors/rate-limit.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
-    // Use Pino logger, buffer logs until logger is ready
     bufferLogs: true,
   });
 
-  // Use Pino logger instance
   app.useLogger(app.get(Logger));
 
-  // Security Middleware
-  app.use(helmet()); // Apply helmet middleware
-  app.use(cookieParser());
-
-  // CORS Configuration
-  app.enableCors({
-    origin: ['http://localhost:5173', 'http://localhost:5174'], // Specify allowed origins instead of '*'
-    credentials: true,
-  });
-
-  // Global Validation
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true, // Strip properties that do not have any decorators
-      forbidNonWhitelisted: true, // Throw an error if non-whitelisted values are provided
-      transform: true, // Automatically transform payloads to DTO instances
-      transformOptions: {
-        enableImplicitConversion: true, // Allow basic type conversions (e.g., string to number for path params)
+  // Enhanced Security Middleware
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          scriptSrc: ["'self'"],
+          imgSrc: ["'self'", 'data:', 'https:'],
+        },
+      },
+      hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true,
       },
     }),
   );
 
-  // Global Prefix
+  app.use(compression());
+  app.use(cookieParser());
+
+  // Enhanced CORS Configuration
+  app.enableCors({
+    origin:
+      process.env.NODE_ENV === 'production'
+        ? ['https://yourdomain.com']
+        : ['http://localhost:5173', 'http://localhost:5174'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Origin',
+      'X-Requested-With',
+      'Content-Type',
+      'Accept',
+      'Authorization',
+      'X-CSRF-Token',
+    ],
+    maxAge: 86400, // 24 hours
+  });
+
+  // Enhanced Global Validation
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+      validateCustomDecorators: true,
+      forbidUnknownValues: true,
+      disableErrorMessages: process.env.NODE_ENV === 'production',
+      stopAtFirstError: true,
+    }),
+  );
+
+  // Global Exception Filter
+  app.useGlobalFilters(new GlobalExceptionFilter());
+
+  // Global Interceptors
+  app.useGlobalInterceptors(
+    new LoggingInterceptor(),
+    new RateLimitInterceptor(),
+  );
+
+  // API Documentation (only in development)
+  if (process.env.NODE_ENV !== 'production') {
+    const config = new DocumentBuilder()
+      .setTitle('iDecide API')
+      .setDescription('Educational Decision Support System API')
+      .setVersion('1.0')
+      .addBearerAuth(
+        {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+        'JWT-auth',
+      )
+      .addTag('auth', 'Authentication endpoints')
+      .addTag('universities', 'University management')
+      .addTag('scholarships', 'Scholarship management')
+      .addTag('colleges', 'College management')
+      .addTag('majors', 'Major management')
+      .addTag('favorites', 'Favorites management')
+      .build();
+
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api/docs', app, document, {
+      swaggerOptions: {
+        persistAuthorization: true,
+      },
+    });
+  }
+
   app.setGlobalPrefix('api');
 
-  // Start Listening
   const port = process.env.PORT || 3000;
   await app.listen(port);
-  console.log(`Application is running on: ${await app.getUrl()}`); // Log the running URL
+  console.log(`Application is running on: ${await app.getUrl()}`);
+
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(
+      `API Documentation available at: ${await app.getUrl()}/api/docs`,
+    );
+  }
 }
 bootstrap();

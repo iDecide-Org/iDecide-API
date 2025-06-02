@@ -6,8 +6,8 @@ import {
   OneToMany,
   JoinColumn,
 } from 'typeorm';
-import { University } from 'src/universities/university.entity';
-import { Major } from 'src/majors/entities/major.entity';
+import { University } from '../../universities/university.entity';
+import { Major } from '../../majors/entities/major.entity';
 
 @Entity('college')
 export class College {

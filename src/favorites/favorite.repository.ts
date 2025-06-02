@@ -8,7 +8,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { FavoriteUniversity } from './favorite-university.entity';
 import { FavoriteScholarship } from './favorite-scholarship.entity'; // Import FavoriteScholarship
-import { User } from '../auth/users/user.entity';
 
 @Injectable()
 export class FavoritesRepository {

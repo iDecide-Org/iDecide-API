@@ -1,15 +1,19 @@
-import { IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsStrongPassword } from '../../common/decorators/validation.decorators';
 
 export class ResetPasswordDto {
-  @IsNotEmpty()
-  @IsString()
-  @MinLength(8, { message: 'Password must be at least 8 characters long' })
-  // You might want to add more complex password validation (e.g., regex for uppercase, numbers, symbols)
+  @ApiProperty({
+    description:
+      'New strong password with at least 8 characters including uppercase, lowercase, number, and special character',
+    example: 'MyNewSecurePass123!',
+    minLength: 8,
+  })
+  @IsNotEmpty({ message: 'Password is required' })
+  @IsString({ message: 'Password must be a string' })
+  @IsStrongPassword({
+    message:
+      'Password must be strong (8+ chars, uppercase, lowercase, number, special char)',
+  })
   password: string;
-
-  // Optional: Add a confirmPassword field if you want validation directly in the DTO
-  // @IsNotEmpty()
-  // @IsString()
-  // @Validate(MatchPasswordConstraint, ['password']) // Custom validator needed
-  // confirmPassword?: string;
 }

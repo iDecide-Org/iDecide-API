@@ -5,7 +5,7 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { College } from 'src/colleges/entities/college.entity';
+import { College } from '../../colleges/entities/college.entity';
 
 @Entity()
 export class Major {
