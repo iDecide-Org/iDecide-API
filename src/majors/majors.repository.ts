@@ -1,115 +1,148 @@
 import {
   Injectable,
   NotFoundException,
-  UnauthorizedException,
-  InternalServerErrorException, // Import InternalServerErrorException
+  InternalServerErrorException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Major } from './entities/major.entity';
 import { CreateMajorDto } from './dto/create-major.dto';
 import { UpdateMajorDto } from './dto/update-major.dto';
-import { College } from '../colleges/entities/college.entity'; // Import College
+import { College } from '../colleges/entities/college.entity';
 
 @Injectable()
 export class MajorsRepository {
+  private readonly logger = new Logger(MajorsRepository.name);
+
   constructor(
     @InjectRepository(Major)
     private readonly majorRepository: Repository<Major>,
-    @InjectRepository(College) // Inject College repository to check ownership via university
-    private readonly collegeRepository: Repository<College>,
+    @InjectRepository(College)
+    private readonly collegeRepository: Repository<College>, // Keep for service layer checks
   ) {}
 
   async createMajor(
     createMajorDto: CreateMajorDto,
-    advisorId: string,
+    college: College, // Expect the validated College object from the service
   ): Promise<Major> {
-    // Verify advisor owns the university that owns the college
-    const college = await this.collegeRepository.findOne({
-      where: { id: createMajorDto.collegeId },
-      relations: ['university'], // Need university to check advisorId
-    });
-
-    if (!college) {
-      throw new NotFoundException(
-        `College with ID ${createMajorDto.collegeId} not found.`,
-      );
-    }
-    if (college.university.advisorId !== advisorId) {
-      throw new UnauthorizedException(
-        'You do not own the university associated with this college.',
-      );
-    }
-
     const major = this.majorRepository.create({
       ...createMajorDto,
-      college: college, // Link the college object
+      college: college, // Assign the full college object
     });
-    await this.majorRepository.save(major);
-    return major;
+    try {
+      await this.majorRepository.save(major);
+      return major;
+    } catch (error) {
+      this.logger.error(
+        `Failed to create major for college ${college.id}: ${error.message}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException('Failed to create major.');
+    }
   }
 
   async findAll(): Promise<Major[]> {
     try {
       return await this.majorRepository.find({
-        relations: ['college', 'college.university'], // Optionally load relations
+        relations: ['college', 'college.university'],
       });
     } catch (error) {
-      console.error('Error finding all majors:', error);
+      this.logger.error(
+        `Error finding all majors: ${error.message}`,
+        error.stack,
+      );
       throw new InternalServerErrorException('Failed to retrieve majors.');
     }
   }
 
   async findAllByCollege(collegeId: string): Promise<Major[]> {
-    return this.majorRepository.find({
-      where: { collegeId },
-      relations: ['college'],
-    });
+    try {
+      return await this.majorRepository.find({
+        where: { collegeId },
+        relations: ['college'],
+      });
+    } catch (error) {
+      this.logger.error(
+        `Error finding majors for college ${collegeId}: ${error.message}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        'Failed to retrieve majors for the college.',
+      );
+    }
   }
 
-  async findOneById(id: string): Promise<Major> {
-    const major = await this.majorRepository.findOne({
-      where: { id },
-      relations: ['college', 'college.university'], // Load relations to check ownership
-    });
-    if (!major) {
-      throw new NotFoundException(`Major with ID ${id} not found`);
+  async findOneById(id: string): Promise<Major | null> {
+    // Return null if not found
+    try {
+      const major = await this.majorRepository.findOne({
+        where: { id },
+        relations: ['college', 'college.university'],
+      });
+      return major; // Can be null if not found
+    } catch (error) {
+      this.logger.error(
+        `Error finding major with ID ${id}: ${error.message}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException('Failed to retrieve major.');
     }
-    return major;
+  }
+
+  async findCollegeWithUniversity(collegeId: string): Promise<College | null> {
+    try {
+      return await this.collegeRepository.findOne({
+        where: { id: collegeId },
+        relations: ['university'],
+      });
+    } catch (error) {
+      this.logger.error(
+        `Error finding college with university for ID ${collegeId}: ${error.message}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        'Failed to retrieve college details.',
+      );
+    }
   }
 
   async updateMajor(
-    id: string,
+    major: Major, // Expect the Major entity from the service
     updateMajorDto: UpdateMajorDto,
-    advisorId: string,
   ): Promise<Major> {
-    const major = await this.findOneById(id); // This already throws NotFoundException if not found
-
-    // Verify advisor owns the university associated with this major's college
-    if (major.college.university.advisorId !== advisorId) {
-      throw new UnauthorizedException(
-        'You do not have permission to update this major.',
-      );
-    }
-
+    // The major entity is fetched and authorized by the service
     Object.assign(major, updateMajorDto);
-    await this.majorRepository.save(major);
-    return major;
+    try {
+      await this.majorRepository.save(major);
+      return major;
+    } catch (error) {
+      this.logger.error(
+        `Failed to update major with ID ${major.id}: ${error.message}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException('Failed to update major.');
+    }
   }
 
-  async removeMajor(id: string, advisorId: string): Promise<void> {
-    const major = await this.findOneById(id); // Check existence and get college/university info
-
-    // Verify advisor owns the university associated with this major's college
-    if (major.college.university.advisorId !== advisorId) {
-      throw new UnauthorizedException(
-        'You do not have permission to delete this major.',
+  async removeMajor(id: string): Promise<void> {
+    // id is sufficient
+    try {
+      const result = await this.majorRepository.delete(id);
+      if (result.affected === 0) {
+        throw new NotFoundException(
+          `Major with ID ${id} not found for deletion.`,
+        );
+      }
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error(
+        `Failed to remove major with ID ${id}: ${error.message}`,
+        error.stack,
       );
-    }
-
-    const result = await this.majorRepository.delete(id);
-    if (result.affected === 0) {
-      throw new NotFoundException(`Major with ID ${id} not found`);
+      throw new InternalServerErrorException('Failed to remove major.');
     }
   }
 }

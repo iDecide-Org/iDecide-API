@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  NotFoundException, // Import NotFoundException
+} from '@nestjs/common';
 import { MajorsRepository } from './majors.repository';
 import { CreateMajorDto } from './dto/create-major.dto';
 import { UpdateMajorDto } from './dto/update-major.dto';
@@ -13,8 +17,24 @@ export class MajorsService {
     if (user.type !== 'advisor') {
       throw new UnauthorizedException('Only advisors can create majors.');
     }
-    // Repository method handles checking if advisor owns the parent university/college
-    return this.majorsRepository.createMajor(createMajorDto, user.id);
+
+    const college = await this.majorsRepository.findCollegeWithUniversity(
+      createMajorDto.collegeId,
+    );
+
+    if (!college) {
+      throw new NotFoundException(
+        `College with ID ${createMajorDto.collegeId} not found.`,
+      );
+    }
+
+    if (college.university.advisorId !== user.id) {
+      throw new UnauthorizedException(
+        'You do not own the university associated with this college.',
+      );
+    }
+
+    return this.majorsRepository.createMajor(createMajorDto, college);
   }
 
   async findAll(): Promise<Major[]> {
@@ -22,13 +42,17 @@ export class MajorsService {
   }
 
   async findAllByCollege(collegeId: string): Promise<Major[]> {
-    // Public access? Or check ownership?
+    // TODO: Consider if authorization is needed here (e.g., only advisor of parent university can list)
     return this.majorsRepository.findAllByCollege(collegeId);
   }
 
   async findOne(id: string): Promise<Major> {
-    // Public access? Or check ownership?
-    return this.majorsRepository.findOneById(id);
+    const major = await this.majorsRepository.findOneById(id);
+    if (!major) {
+      throw new NotFoundException(`Major with ID ${id} not found`);
+    }
+    // TODO: Consider if authorization is needed here (e.g., only advisor of parent university can view)
+    return major;
   }
 
   async update(
@@ -39,15 +63,36 @@ export class MajorsService {
     if (user.type !== 'advisor') {
       throw new UnauthorizedException('Only advisors can update majors.');
     }
-    // Repository method handles checking ownership
-    return this.majorsRepository.updateMajor(id, updateMajorDto, user.id);
+
+    const major = await this.majorsRepository.findOneById(id);
+    if (!major) {
+      throw new NotFoundException(`Major with ID ${id} not found`);
+    }
+
+    if (major.college.university.advisorId !== user.id) {
+      throw new UnauthorizedException(
+        'You do not have permission to update this major.',
+      );
+    }
+
+    return this.majorsRepository.updateMajor(major, updateMajorDto);
   }
 
   async remove(id: string, user: User): Promise<void> {
     if (user.type !== 'advisor') {
       throw new UnauthorizedException('Only advisors can delete majors.');
     }
-    // Repository method handles checking ownership
-    await this.majorsRepository.removeMajor(id, user.id);
+
+    const major = await this.majorsRepository.findOneById(id);
+    if (!major) {
+      throw new NotFoundException(`Major with ID ${id} not found`);
+    }
+
+    if (major.college.university.advisorId !== user.id) {
+      throw new UnauthorizedException(
+        'You do not have permission to delete this major.',
+      );
+    }
+    await this.majorsRepository.removeMajor(id);
   }
 }
