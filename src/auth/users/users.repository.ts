@@ -200,6 +200,8 @@ export class UserRepository {
   async findById(id: string): Promise<User | null> {
     try {
       const user = await this.userRepository.findOne({ where: { id } });
+      console.log('user is ', user);
+
       return user;
     } catch (err) {
       throw new InternalServerErrorException(

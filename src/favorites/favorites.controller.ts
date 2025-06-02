@@ -9,55 +9,43 @@ import {
   HttpStatus,
   ParseUUIDPipe,
   UnauthorizedException,
+  UseGuards, // Import UseGuards
 } from '@nestjs/common';
 import { FavoritesService } from './favorites.service';
-// import { AuthGuard } from '../auth/auth.guard';
+import { AuthGuard } from '@nestjs/passport'; // Import AuthGuard
 import { Request } from 'express';
-import { JwtService } from '@nestjs/jwt';
-import { UserRepository } from '../auth/users/users.repository';
+import { User } from '../auth/users/user.entity'; // Ensure User entity is imported
 
 @Controller('favorites')
-// @UseGuards(AuthGuard) // Protect all routes in this controller
+@UseGuards(AuthGuard('jwt')) // Apply guard to all routes in this controller
 export class FavoritesController {
   constructor(
     private readonly favoritesService: FavoritesService,
-    private readonly jwtService: JwtService,
-    private readonly userRepository: UserRepository,
+    // Remove jwtService and userRepository if no longer needed
   ) {}
-
-  // Helper to get user ID from request
-  private async getUserIdFromRequest(request: Request): Promise<string> {
-    const cookie = request.cookies['jwt'];
-    if (!cookie) throw new UnauthorizedException('JWT cookie not found.');
-    try {
-      const data = await this.jwtService.verifyAsync(cookie);
-      if (!data || !data['id'])
-        throw new UnauthorizedException('Invalid JWT data.');
-      // Optional: Verify user exists
-      // const user = await this.userRepository.findById(data['id']);
-      // if (!user) throw new UnauthorizedException('User not found.');
-      return data['id'];
-    } catch (e) {
-      throw new UnauthorizedException('Invalid or expired JWT.');
-    }
-  }
 
   // --- University Favorites ---
 
   @Get('/universities')
-  async getFavoriteUniversities(@Req() request: Request) {
-    const userId = await this.getUserIdFromRequest(request);
-    return this.favoritesService.getUserFavoriteUniversities(userId);
+  async getFavoriteUniversities(@Req() req: Request) {
+    const user = req.user as User; // Access user from request
+    if (!user || !user.id) {
+      throw new UnauthorizedException('User not authenticated or ID missing.');
+    }
+    return this.favoritesService.getUserFavoriteUniversities(user.id);
   }
 
   @Get('/universities/check/:universityId')
   async checkFavoriteUniversity(
     @Param('universityId', ParseUUIDPipe) universityId: string,
-    @Req() request: Request,
+    @Req() req: Request,
   ) {
-    const userId = await this.getUserIdFromRequest(request);
+    const user = req.user as User; // Access user from request
+    if (!user || !user.id) {
+      throw new UnauthorizedException('User not authenticated or ID missing.');
+    }
     const isFavorite = await this.favoritesService.isUniversityFavorite(
-      userId,
+      user.id,
       universityId,
     );
     return { isFavorite };
@@ -67,21 +55,30 @@ export class FavoritesController {
   @HttpCode(HttpStatus.CREATED)
   async addFavoriteUniversity(
     @Param('universityId', ParseUUIDPipe) universityId: string,
-    @Req() request: Request,
+    @Req() req: Request,
   ) {
-    const userId = await this.getUserIdFromRequest(request);
-    return this.favoritesService.addUniversityToFavorites(userId, universityId);
+    const user = req.user as User; // Access user from request
+    if (!user || !user.id) {
+      throw new UnauthorizedException('User not authenticated or ID missing.');
+    }
+    return this.favoritesService.addUniversityToFavorites(
+      user.id,
+      universityId,
+    );
   }
 
   @Delete('/universities/:universityId')
   @HttpCode(HttpStatus.NO_CONTENT)
   async removeFavoriteUniversity(
     @Param('universityId', ParseUUIDPipe) universityId: string,
-    @Req() request: Request,
+    @Req() req: Request,
   ) {
-    const userId = await this.getUserIdFromRequest(request);
+    const user = req.user as User; // Access user from request
+    if (!user || !user.id) {
+      throw new UnauthorizedException('User not authenticated or ID missing.');
+    }
     await this.favoritesService.removeUniversityFromFavorites(
-      userId,
+      user.id,
       universityId,
     );
   }
@@ -89,20 +86,26 @@ export class FavoritesController {
   // --- Scholarship Favorites ---
 
   @Get('/scholarships')
-  async getFavoriteScholarships(@Req() request: Request) {
-    const userId = await this.getUserIdFromRequest(request);
-    return this.favoritesService.getUserFavoriteScholarships(userId);
+  async getFavoriteScholarships(@Req() req: Request) {
+    const user = req.user as User; // Access user from request
+    if (!user || !user.id) {
+      throw new UnauthorizedException('User not authenticated or ID missing.');
+    }
+    return this.favoritesService.getUserFavoriteScholarships(user.id);
   }
 
   @Post('/scholarships/:scholarshipId')
   @HttpCode(HttpStatus.CREATED)
   async addFavoriteScholarship(
     @Param('scholarshipId', ParseUUIDPipe) scholarshipId: string,
-    @Req() request: Request,
+    @Req() req: Request,
   ) {
-    const userId = await this.getUserIdFromRequest(request);
+    const user = req.user as User; // Access user from request
+    if (!user || !user.id) {
+      throw new UnauthorizedException('User not authenticated or ID missing.');
+    }
     return this.favoritesService.addScholarshipToFavorites(
-      userId,
+      user.id,
       scholarshipId,
     );
   }
@@ -111,11 +114,14 @@ export class FavoritesController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async removeFavoriteScholarship(
     @Param('scholarshipId', ParseUUIDPipe) scholarshipId: string,
-    @Req() request: Request,
+    @Req() req: Request,
   ) {
-    const userId = await this.getUserIdFromRequest(request);
+    const user = req.user as User; // Access user from request
+    if (!user || !user.id) {
+      throw new UnauthorizedException('User not authenticated or ID missing.');
+    }
     await this.favoritesService.removeScholarshipFromFavorites(
-      userId,
+      user.id,
       scholarshipId,
     );
   }

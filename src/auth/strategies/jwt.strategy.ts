@@ -7,7 +7,8 @@ import { UserRepository } from '../users/users.repository'; // Assuming you have
 import { User } from '../users/user.entity';
 
 @Injectable()
-export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') { // Use 'jwt' as the strategy name
+export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
+  // Use 'jwt' as the strategy name
   constructor(
     private configService: ConfigService,
     private userRepository: UserRepository, // Inject UserRepository
@@ -28,7 +29,10 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') { // Use 'jwt
         },
       ]),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET', 'YOUR_DEFAULT_SECRET'), // Use ConfigService
+      secretOrKey: configService.get<string>(
+        'JWT_SECRET',
+        'YOUR_DEFAULT_SECRET',
+      ), // Use ConfigService
     });
   }
 

@@ -15,17 +15,21 @@ import {
   Logger, // Import Logger
   HttpException, // Import HttpException
   BadRequestException, // Import BadRequestException
+  UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignupDto } from './dto/signup.dto';
 import { SigninDto } from './dto/signin.dto';
 import { Request, Response } from 'express';
-import { JwtService } from '@nestjs/jwt';
-import { UserRepository } from './users/users.repository';
+// import { JwtService } from '@nestjs/jwt'; // No longer needed for direct verification here
+import { UserRepository } from './users/users.repository'; // Still needed for user operations
 import { UpdateProfileDto } from './dto/update-profile.dto'; // Import DTO
-import { instanceToPlain } from 'class-transformer';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { AuthGuard } from '@nestjs/passport';
+import { User } from './users/user.entity';
+import { instanceToPlain } from 'class-transformer';
+import { UserEnrichmentService } from './user-enrichment.service';
 
 @Controller('auth')
 export class AuthController {
@@ -33,36 +37,27 @@ export class AuthController {
 
   constructor(
     private readonly authService: AuthService,
-    private jwtService: JwtService,
+    // private jwtService: JwtService, // Remove: AuthGuard handles JWT verification
     private readonly userRepository: UserRepository,
+    private userEnrichmentService: UserEnrichmentService,
   ) {}
 
   @Post('chatbot-status')
+  @UseGuards(AuthGuard('jwt'))
   @HttpCode(HttpStatus.OK)
   async updateChatbotStatus(
     @Body() body: { status: boolean },
     @Req() request: Request,
   ) {
-    try {
-      const cookie = request.cookies['jwt'];
-      if (!cookie) {
-        throw new UnauthorizedException('JWT cookie not found.');
-      }
-      const data = await this.jwtService.verifyAsync(cookie);
-
-      if (!data) {
-        throw new UnauthorizedException('Unauthorized');
-      }
-
-      await this.userRepository.updateChatbotStatus(data['id'], body.status);
-
-      return {
-        message: 'Success',
-      };
-    } catch (e) {
-      throw new UnauthorizedException(e.message);
-    }
+    const user = request.user as User; // User is populated by AuthGuard
+    // The AuthGuard should ensure user and user.id exist.
+    // A more robust check could be done in a custom decorator or a more specific guard if needed.
+    await this.userRepository.updateChatbotStatus(user.id, body.status);
+    return {
+      message: 'Success',
+    };
   }
+
   @Post('signup')
   @HttpCode(HttpStatus.CREATED)
   async Signup(
@@ -86,94 +81,40 @@ export class AuthController {
     return this.authService.deleteUser(id);
   }
   @Get('user')
-  @HttpCode(HttpStatus.OK) //this will return 200 status code if success
+  @UseGuards(AuthGuard('jwt'))
+  @HttpCode(HttpStatus.OK)
   async getUser(@Req() request: Request) {
-    // Log headers and cookies for the /user request
-    // this.logger.debug('Incoming headers in getUser:', request.headers);
-    // this.logger.debug('Incoming cookies in getUser:', request.cookies);
-
-    try {
-      const cookie = request.cookies['jwt'];
-      if (!cookie) {
-        // this.logger.error('JWT cookie not found in getUser request.'); // Log the specific error
-        throw new UnauthorizedException('JWT cookie not found.');
-      }
-      const data = await this.jwtService.verifyAsync(cookie);
-
-      if (!data || !data['id']) {
-        throw new UnauthorizedException('Unauthorized');
-      }
-      // find user logic here
-      const user = await this.userRepository.findById(data['id']);
-
-      if (!user) {
-        throw new UnauthorizedException('User not found');
-      }
-
-      const transformedUser = instanceToPlain(user); // remove password and other sensitive data
-
-      if (user.type === 'student') {
-        const student = await this.userRepository.findStudentByUserId(user.id);
-        if (!student) {
-          throw new UnauthorizedException('Student not found');
-        }
-        return { ...student, ...transformedUser }; // Return result (which includes id) + status
-      } else if (user.type === 'advisor') {
-        const advisor = await this.userRepository.findAdvisorByUserId(user.id);
-
-        return {
-          ...advisor,
-          ...transformedUser, // overwrite advisor id with transformedUser
-          advisorId: advisor.id, // Include advisorId if needed
-        };
-      } else if (user.type === 'admin') {
-        // Handle admin type
-        const admin = await this.userRepository.findAdminByUserId(user.id);
-        // Add any admin-specific data to return if needed
-        return {
-          ...transformedUser,
-          ...admin, // Include admin data if needed
-        };
-      }
-    } catch (e) {
-      this.logger.error(`Error in getUser: ${e.message}`, e.stack);
-      if (e instanceof UnauthorizedException) {
-        throw e; // Re-throw UnauthorizedException
-      } else {
-        // Throw a generic internal server error for other cases
-        throw new HttpException(
-          'Failed to retrieve user data',
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-    }
+    const user = request.user as User; // User is populated by AuthGuard
+    return this.userEnrichmentService.enrichUser(user);
   }
 
-  @Put('profile') // Use PUT for updates
+  @Get('profile')
+  @UseGuards(AuthGuard('jwt'))
+  @HttpCode(HttpStatus.OK)
+  async getProfile(@Req() request: Request) {
+    const user = request.user as User; // User is populated by AuthGuard
+    // Fetch the full profile using the ID from the authenticated user
+
+    if (!user) {
+      // This scenario (authenticated user not in DB) should be rare if JWTs are managed correctly.
+      throw new UnauthorizedException('User profile not found.');
+    }
+    return user;
+  }
+
+  @Put('profile') // Changed from Post to Put for updating existing resource
+  @UseGuards(AuthGuard('jwt'))
   @HttpCode(HttpStatus.OK)
   async updateProfile(
     @Req() request: Request,
-    @Body(new ValidationPipe()) updateProfileDto: UpdateProfileDto, // Validate DTO
+    @Body(new ValidationPipe()) updateProfileDto: UpdateProfileDto,
   ) {
-    try {
-      const cookie = request.cookies['jwt'];
-      if (!cookie) {
-        throw new UnauthorizedException('JWT cookie not found.');
-      }
-      const data = await this.jwtService.verifyAsync(cookie);
-
-      if (!data || !data['id']) {
-        throw new UnauthorizedException('Unauthorized');
-      }
-
-      const userId = data['id'];
-
-      await this.userRepository.updateUserProfile(userId, updateProfileDto);
-
-      return { message: 'Profile updated successfully' };
-    } catch (e) {
-      throw new UnauthorizedException(e.message || 'Failed to update profile');
-    }
+    const user = request.user as User; // User is populated by AuthGuard
+    // Corrected to call userRepository directly if updateUserProfile is there
+    await this.userRepository.updateUserProfile(user.id, updateProfileDto);
+    return {
+      message: 'Profile updated successfully',
+    };
   }
 
   @Post('logout')
