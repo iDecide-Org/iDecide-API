@@ -32,7 +32,10 @@ export class ScholarshipsController {
     @Req() request: Request,
   ) {
     const user = request.user as User;
-    return this.scholarshipsService.addScholarship(createScholarshipDto, user);
+    return this.scholarshipsService.createScholarship(
+      createScholarshipDto,
+      user,
+    );
   }
 
   @Get('/advisor')
@@ -44,17 +47,17 @@ export class ScholarshipsController {
         'Only advisors can access this resource.',
       );
     }
-    return this.scholarshipsService.getScholarshipsByAdvisor(user.id);
+    return this.scholarshipsService.findByAdvisor(user.id);
   }
 
   @Get()
   async getAllScholarships() {
-    return this.scholarshipsService.getAllScholarships();
+    return this.scholarshipsService.findAll();
   }
 
   @Get(':id')
   async getScholarship(@Param('id', ParseUUIDPipe) id: string) {
-    return this.scholarshipsService.getScholarshipById(id);
+    return this.scholarshipsService.findById(id);
   }
 
   @Put(':id')
@@ -68,8 +71,8 @@ export class ScholarshipsController {
     const user = request.user as User;
     return this.scholarshipsService.updateScholarship(
       id,
-      user,
       updateScholarshipDto,
+      user,
     );
   }
 
@@ -81,6 +84,6 @@ export class ScholarshipsController {
     @Req() request: Request,
   ) {
     const user = request.user as User;
-    await this.scholarshipsService.removeScholarship(id, user);
+    await this.scholarshipsService.deleteScholarship(id, user);
   }
 }

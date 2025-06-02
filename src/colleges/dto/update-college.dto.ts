@@ -1,6 +1,6 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateCollegeDto } from './create-college.dto';
-import { IsOptional, IsString, IsUrl, IsUUID } from 'class-validator';
+import { IsOptional, IsString, IsUrl } from 'class-validator';
 
 export class UpdateCollegeDto extends PartialType(CreateCollegeDto) {
   // Inherits optional fields from CreateCollegeDto

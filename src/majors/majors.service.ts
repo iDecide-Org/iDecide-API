@@ -34,20 +34,33 @@ export class MajorsService {
       );
     }
 
-    return this.majorsRepository.createMajor(createMajorDto, college);
+    // Prepare major data
+    const majorData = {
+      ...createMajorDto,
+      college,
+      collegeId: college.id,
+    };
+
+    return this.majorsRepository.create(majorData);
   }
 
   async findAll(): Promise<Major[]> {
-    return this.majorsRepository.findAll();
+    return this.majorsRepository.findAll(['college', 'college.university']);
   }
 
   async findAllByCollege(collegeId: string): Promise<Major[]> {
     // TODO: Consider if authorization is needed here (e.g., only advisor of parent university can list)
-    return this.majorsRepository.findAllByCollege(collegeId);
+    return this.majorsRepository.findByCollege(collegeId, [
+      'college',
+      'college.university',
+    ]);
   }
 
   async findOne(id: string): Promise<Major> {
-    const major = await this.majorsRepository.findOneById(id);
+    const major = await this.majorsRepository.findById(id, [
+      'college',
+      'college.university',
+    ]);
     if (!major) {
       throw new NotFoundException(`Major with ID ${id} not found`);
     }
@@ -64,7 +77,10 @@ export class MajorsService {
       throw new UnauthorizedException('Only advisors can update majors.');
     }
 
-    const major = await this.majorsRepository.findOneById(id);
+    const major = await this.majorsRepository.findById(id, [
+      'college',
+      'college.university',
+    ]);
     if (!major) {
       throw new NotFoundException(`Major with ID ${id} not found`);
     }
@@ -75,7 +91,7 @@ export class MajorsService {
       );
     }
 
-    return this.majorsRepository.updateMajor(major, updateMajorDto);
+    return this.majorsRepository.update(id, updateMajorDto);
   }
 
   async remove(id: string, user: User): Promise<void> {
@@ -83,7 +99,10 @@ export class MajorsService {
       throw new UnauthorizedException('Only advisors can delete majors.');
     }
 
-    const major = await this.majorsRepository.findOneById(id);
+    const major = await this.majorsRepository.findById(id, [
+      'college',
+      'college.university',
+    ]);
     if (!major) {
       throw new NotFoundException(`Major with ID ${id} not found`);
     }
@@ -93,6 +112,6 @@ export class MajorsService {
         'You do not have permission to delete this major.',
       );
     }
-    await this.majorsRepository.removeMajor(id);
+    await this.majorsRepository.delete(id);
   }
 }
