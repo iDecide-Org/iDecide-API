@@ -74,7 +74,7 @@ export class UniversitiesService {
 
   async getUniversitiesByAdvisor(
     advisorId: string,
-  ): Promise<University | null> {
+  ): Promise<University | null | []> {
     return this.universitiesRepository.findByAdvisorId(advisorId, [
       'colleges',
       'scholarships',
