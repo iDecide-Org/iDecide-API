@@ -13,13 +13,14 @@
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:cov": "jest --coverage",
+    "test": "jest --config jest.config.js --selectProjects unit",
+    "test:watch": "jest --config jest.config.js --selectProjects unit --watch",
+    "test:cov": "jest --config jest.config.js --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json",
-    "test:unit": "jest --testPathPattern=src/.*\\.spec\\.ts$",
-    "test:integration": "jest --testPathPattern=test/.*\\.spec\\.ts$"
+    "test:e2e": "jest --config jest.config.js --selectProjects integration",
+    "test:unit": "jest --config jest.config.js --selectProjects unit",
+    "test:integration": "jest --config jest.config.js --selectProjects integration",
+    "test:all": "jest --config jest.config.js"
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.0",
