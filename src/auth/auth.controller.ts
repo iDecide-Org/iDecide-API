@@ -28,7 +28,6 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { User } from './users/user.entity';
-import { instanceToPlain } from 'class-transformer';
 import { UserEnrichmentService } from './user-enrichment.service';
 
 @Controller('auth')
