@@ -17,9 +17,8 @@
     "test:watch": "jest --config jest.config.js --selectProjects unit --watch",
     "test:cov": "jest --config jest.config.js --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config jest.config.js --selectProjects integration",
     "test:unit": "jest --config jest.config.js --selectProjects unit",
-    "test:integration": "jest --config jest.config.js --selectProjects integration",
+    "test:e2e": "jest --config jest.config.js --selectProjects integration",
     "test:all": "jest --config jest.config.js"
   },
   "dependencies": {

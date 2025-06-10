@@ -44,12 +44,10 @@ export class IntegrationTestSetup {
                   configService.get<string>('DB_PORT') || '5432',
                   10,
                 ),
-                username:
-                  configService.get<string>('DB_USERNAME') || 'postgres',
-                password:
-                  configService.get<string>('DB_PASSWORD') || 'postgres',
+                username: configService.get<string>('DB_USERNAME') || 'mohamed',
+                password: configService.get<string>('DB_PASSWORD') || 'asd',
                 database:
-                  configService.get<string>('DB_DATABASE') || 'idecide_test',
+                  configService.get<string>('DB_DATABASE') || 'idecides',
                 entities: [
                   User,
                   Student,

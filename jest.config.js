@@ -23,7 +23,7 @@ module.exports = {
   // Clean up after each test
   clearMocks: true,
 
-  // Define projects for unit and integration tests
+  // Define projects for unit tests
   projects: [
     {
       displayName: 'unit',
@@ -32,7 +32,7 @@ module.exports = {
       moduleFileExtensions: ['js', 'json', 'ts'],
       rootDir: '.',
       testEnvironment: 'node',
-      timeout: 30000, // 30 seconds for unit tests
+      testTimeout: 30000, // Changed from timeout to testTimeout
       transform: {
         '^.+\\.(t|j)s$': 'ts-jest',
       },
@@ -43,12 +43,12 @@ module.exports = {
     },
     {
       displayName: 'integration',
-      testMatch: ['<rootDir>/test/**/*.e2e-spec.ts'],
-      setupFilesAfterEnv: ['<rootDir>/test/setup.ts'],
+      testMatch: ['<rootDir>/src/**/*.e2e-spec.ts'],
+      setupFilesAfterEnv: ['<rootDir>/test/setup-e2e.ts'], // New setup file for e2e tests
       moduleFileExtensions: ['js', 'json', 'ts'],
       rootDir: '.',
       testEnvironment: 'node',
-      timeout: 120000, // 2 minutes for integration tests
+      testTimeout: 30000, // Added testTimeout
       transform: {
         '^.+\\.(t|j)s$': 'ts-jest',
       },
@@ -56,8 +56,6 @@ module.exports = {
         '^src/(.*)$': '<rootDir>/src/$1',
       },
       clearMocks: true,
-      // Run integration tests serially to avoid database conflicts
-      maxWorkers: 1,
     },
   ],
 };
