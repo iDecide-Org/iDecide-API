@@ -1,99 +1,245 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# iDecide API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Backend API for **iDecide** — an educational decision support system. Built with **NestJS** + **TypeORM** + **PostgreSQL**, with JWT authentication, Swagger docs (dev-only), file uploads, real-time chat (Socket.IO), and a security-focused middleware stack.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Table of Contents
 
-## Description
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Requirements](#requirements)
+- [Quick Start](#quick-start)
+- [Environment Variables](#environment-variables)
+- [Running](#running)
+- [API Docs (Swagger)](#api-docs-swagger)
+- [Authentication](#authentication)
+- [Database](#database)
+- [Uploads](#uploads)
+- [Testing](#testing)
+- [Security Notes](#security-notes)
+- [Scripts](#scripts)
+- [License](#license)
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Features
 
-## Project setup
+- **Auth & Users**
+  - JWT-based auth (`Bearer <token>`)
+  - User roles/entities: `User`, `Student`, `Advisor`, `Admin`
+- **Domain Modules**
+  - Universities
+  - Colleges
+  - Majors
+  - Scholarships
+  - Favorites (universities & scholarships)
+- **Real-time Chat**
+  - Socket.IO-based chat module (see `src/chat`)
+- **Email**
+  - Email module for notifications and flows (see `src/email`)
+- **Security & Validation**
+  - Global DTO validation via `class-validator`/`class-transformer`
+  - Strict request shaping: whitelist + forbid non-whitelisted fields
+  - Helmet security headers + compression + cookie parsing
+  - Global exception filter for sanitized errors
+  - Request logging interceptor
+  - Simple IP-based rate limiting interceptor
+
+More details on the security/validation work are documented in [`SECURITY_IMPLEMENTATION.md`](./SECURITY_IMPLEMENTATION.md).
+
+## Tech Stack
+
+- **Runtime**: Node.js + TypeScript
+- **Framework**: NestJS
+- **DB**: PostgreSQL
+- **ORM**: TypeORM
+- **Auth**: `@nestjs/jwt`, `passport-jwt`
+- **Docs**: `@nestjs/swagger`
+- **Logging**: `nestjs-pino`
+- **HTTP Client**: Axios
+- **Uploads**: Multer
+- **Realtime**: Socket.IO
+- **Testing**: Jest + Supertest
+
+## Project Structure
+
+High-level layout:
+
+- `src/auth` — authentication + user entities
+- `src/universities` — universities domain
+- `src/colleges` — colleges domain
+- `src/majors` — majors domain
+- `src/scholarships` — scholarships domain
+- `src/favorites` — favorites domain
+- `src/chat` — websocket chat
+- `src/common` — filters/interceptors/validators
+- `uploads/` — uploaded files (runtime directory)
+
+The app uses a global API prefix of `api` (configured in `src/main.ts`), so routes look like:
+
+- `http://localhost:3000/api/...`
+
+## Requirements
+
+- Node.js (recommended: latest LTS)
+- npm
+- PostgreSQL database instance
+
+## Quick Start
+
+1. Install dependencies:
 
 ```bash
-$ npm install
+npm install
 ```
 
-## Compile and run the project
+2. Create your `.env` file.
+
+This project loads environment variables from `.env` (see `ConfigModule.forRoot({ envFilePath: '.env' })` in `src/app.module.ts`).
+
+There is an `.env.example` in the repo; copy it to `.env` and fill in values.
+
+3. Start the API in dev mode:
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+npm run start:dev
 ```
 
-## Run tests
+The server will start on:
+
+- `http://localhost:3000`
+- API base path: `http://localhost:3000/api`
+
+## Environment Variables
+
+This project expects DB configuration via environment variables (with development-friendly defaults):
+
+- `PORT` (default: `3000`)
+- `NODE_ENV` (`production` disables Swagger and TypeORM `synchronize`)
+
+Database variables used in `src/app.module.ts`:
+
+- `DB_HOST` (default: `localhost`)
+- `DB_PORT` (default: `32768`)
+- `DB_USERNAME` (default: `postgres`)
+- `DB_PASSWORD` (default: `postgres`)
+- `DB_DATABASE` (default: `idecide`)
+
+Other variables may be required depending on enabled features (JWT secrets, email SMTP, etc.). Use the repo’s `.env.example` as the source of truth.
+
+## Running
+
+### Development
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm run start:dev
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### Debug
 
 ```bash
-$ npm install -g mau
-$ mau deploy
+npm run start:debug
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### Production build + run
 
-## Resources
+```bash
+npm run build
+npm run start:prod
+```
 
-Check out a few resources that may come in handy when working with NestJS:
+## API Docs (Swagger)
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+Swagger is enabled **only when `NODE_ENV !== 'production'`**.
 
-## Support
+Once running in dev, open:
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+- `http://localhost:3000/api/docs`
 
-## Stay in touch
+The Swagger setup includes JWT bearer auth under the name `JWT-auth`. Authorize using:
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+- `Authorization: Bearer <your_token>`
 
-## License
+## Authentication
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+This API uses JWT bearer tokens. Typical flow:
+
+1. Sign up / sign in via the auth endpoints (see Swagger in dev).
+2. Receive an access token.
+3. Call protected endpoints with:
+
+- `Authorization: Bearer <token>`
+
+User-related entities live under `src/auth/users`.
+
+## Database
+
+TypeORM is configured in `src/app.module.ts`.
+
+Important behavior:
+
+- `synchronize` is **enabled only in non-production** (`NODE_ENV !== 'production'`)
+- In production, you should use migrations (not included here by default) or another controlled schema strategy.
+
+To connect locally:
+- Ensure PostgreSQL is running
+- Ensure the database exists (e.g. `idecide`)
+- Set `DB_*` values in `.env`
+
+## Uploads
+
+This repo includes an `uploads/` directory at the project root. If you’re using file upload endpoints, ensure the process has permissions to write there (especially in containerized deployments).
+
+## Testing
+
+Run unit tests:
+
+```bash
+npm run test
+```
+
+Run e2e/integration tests:
+
+```bash
+npm run test:e2e
+```
+
+Run all test projects:
+
+```bash
+npm run test:all
+```
+
+Coverage:
+
+```bash
+npm run test:cov
+```
+
+## Security Notes
+
+Key security choices implemented at the app level (`src/main.ts`):
+
+- Helmet security headers + basic CSP
+- CORS configured with:
+  - Dev origins: `http://localhost:5173`, `http://localhost:5174`
+  - Production placeholder: `https://yourdomain.com` (change this)
+- Global `ValidationPipe`:
+  - `whitelist: true`
+  - `forbidNonWhitelisted: true`
+  - `transform: true` with implicit conversion
+  - `disableErrorMessages` in production
+- Global exception filter to sanitize error output
+- Global logging + rate-limiting interceptors
+
+See [`SECURITY_IMPLEMENTATION.md`](./SECURITY_IMPLEMENTATION.md) for a detailed breakdown.
+
+## Scripts
+
+Common scripts (from `package.json`):
+
+- `npm run start` — start
+- `npm run start:dev` — start (watch)
+- `npm run start:prod` — run compiled output
+- `npm run build` — build
+- `npm run lint` — eslint (with `--fix`)
+- `npm run format` — prettier
+- `npm run test` / `test:e2e` / `test:cov` — Jest test suites
